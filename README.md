@@ -31,7 +31,7 @@ cp mogul.local.toml.example mogul.local.toml
 Some accounts need you logged in (age-restricted, "login required",
 HTTP 403). Export cookies for tiktok.com in Netscape format with a browser
 extension (**Get cookies.txt LOCALLY** for Chrome/Edge, **cookies.txt** for
-Firefox) and save them as `mogul_json/tiktok/cookies.txt` (or set
+Firefox) and save them as `mogul_userdata/tiktok/cookies.txt` (or set
 `cookies` in `mogul.local.toml`). They're used automatically when the file
 exists; `--no-cookies` turns them off for a run. Cookies expire: if
 accounts that used to work start asking for a login, export them again.
@@ -80,19 +80,20 @@ Most actions take `--name @handle` (or ID) for one account,
 
 ## Where things go
 
-Everything private sits in one folder, `mogul_json/tiktok/`, which never
-goes to GitHub:
-
 ```
-mogul_json/tiktok/
-  accounts/<id>.json     the catalog: one file per account (back this up)
-  blocked.json           block list
-  reports/               one report per run
-  state/                 latest raw listings, update queue (safe to delete)
-  cookies.txt            your browser cookies
+mogul_json/tiktok/<id>.json      the catalog: one file per account (back this up)
+mogul_userdata/tiktok/           private, tied to you
+  cookies.txt                    your browser cookies
+  blocked.json                   block list
+  reports/                       one report per run
+  state/                         latest raw listings (gzipped yt-dlp JSON), update queue
 mogul_library/tiktok/<id>/       videos, named 2025.02.03-7467300438342290734.mp4
 mogul_quarantine/tiktok/<id>/    files validate couldn't fix
 ```
+
+None of these go to GitHub. `mogul_userdata/` is for anything specific to
+you; the TikTok catalog isn't shared either (nobody wants to mirror all of
+it).
 
 Settings work the same way: `mogul.toml` is the public copy with safe
 defaults, `mogul.local.toml` is yours (paths, anything private) and never

@@ -36,17 +36,22 @@ migration from the old SQLite databases (decided 2026-11-07).
   layering as MOGUL (`mogul.local.toml` overrides, gitignored).
 - **Folders use MOGUL's names** with a `tiktok` subfolder:
   `mogul_json/tiktok/`, `mogul_library/tiktok/`, `mogul_quarantine/tiktok/`.
-- **Everything private goes in `mogul_json/tiktok/`** (decided 2026-11-07):
-  catalog (`accounts/`), `blocked.json`, `reports/`, `state/`,
-  `cookies.txt`. `state`, `reports`, `cookies` settings default to "" =
-  that folder. Settings: `mogul.toml` public with safe defaults,
+- **`mogul_userdata/` holds anything private or user-specific** (decided
+  2026-11-07; meant to become a MOGUL-wide convention): `[core] userdata`,
+  one subfolder per module. TikTok: `mogul_userdata/tiktok/` holds
+  `cookies.txt`, `blocked.json`, `reports/`, `state/`. The `state`,
+  `reports`, `cookies` settings default to "" = that folder.
+  (`mogul.local.toml` has to stay next to `mogul.toml`: the core looks for
+  it there.)
+- **Catalog:** `mogul_json/tiktok/<uploader_id>.json`, flat. Not shared
+  (Mavrick: nobody wants to mirror all of it), so gitignored. Settings: `mogul.toml` public with safe defaults,
   `mogul.local.toml` private (gitignored), `.example` is the template.
 
 Merging later = copy `modules/tiktok/` into MOGUL, add
 `"tiktok": "modules.tiktok"` to `MEDIA_TYPES` in `mogul.py`, paste the
 `[tiktok]` section into MOGUL's `mogul.toml`, and copy over `mogul_json/tiktok/`.
 Things to check at merge time: MOGUL's `.gitignore` pushes `mogul_json/`,
-so add `mogul_json/tiktok/` to its `.gitignore` (this repo keeps it private), and `media.py`'s ffprobe helper could move
+so add `mogul_json/tiktok/` and `mogul_userdata/` to its `.gitignore`, and `media.py`'s ffprobe helper could move
 into MOGUL's core for future video modules.
 
 ## Environment
@@ -84,11 +89,9 @@ modules/tiktok/
 ## Data storage
 
 - **JSON is the source of truth**, one file per account:
-  `mogul_json/tiktok/accounts/<uploader_id>.json`. Saved after every
+  `mogul_json/tiktok/<uploader_id>.json`. Saved after every
   account (update) or every video (download, scan, validate), written
   safely (temp file + rename) by `mogul_core/store.py`.
-- `mogul_json/` is **gitignored** here (it lists every followed account).
-  MOGUL pushes its catalog on purpose; revisit at merge time.
 - **No paths in the JSON.** A file's location = `library` (or
   `quarantine` if `file.location` says so) + `folder_template` +
   `file.filename`.
@@ -96,8 +99,8 @@ modules/tiktok/
   JavaScript numbers.
 - Videos are never removed from the catalog. Missing from a listing →
   `listing.not_listed_since`; seen again → cleared.
-- Raw yt-dlp listings are working state in `mogul_json/tiktok/state/dumps/`
-  (latest only, gzipped). The old flatdump snapshot archive was dropped:
+- Raw yt-dlp listings (`--dump-single-json` output, gzipped) are working
+  state in `mogul_userdata/tiktok/state/dumps/<uid>.json.gz` (latest only). The old flatdump snapshot archive was dropped:
   the catalog keeps every video ever seen anyway.
 
 ### Account file layout
@@ -154,7 +157,7 @@ modules/tiktok/
   `large_channel`+ videos are listed twice (by channel URL/ID and by
   handle) and merged, because TikTok returns different slices of big
   accounts per URL. Timeout per account: override, else 3x last duration,
-  else default. Writes `mogul_json/tiktok/state/update-queue.txt`; `--resume`
+  else default. Writes `mogul_userdata/tiktok/state/update-queue.txt`; `--resume`
   continues an interrupted run.
 - **download**: listed videos with no file and no skip, newest first.
   yt-dlp writes `<id>.<ext>` into the account folder, then it's renamed to

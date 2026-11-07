@@ -16,11 +16,11 @@ mogul_incoming/
 *.part
 
 # --- Kept on this machine only ---
-# Everything private for TikTok: catalog, block list, reports, raw
-# listings, cookies (all in mogul_json/tiktok/). It lists every account
-# you follow, so it never goes to GitHub.
-# (MOGUL pushes mogul_json/ on purpose: at merge time, ignore
-# mogul_json/tiktok/ there instead.)
+# Private, user-specific files: cookies, block list, reports, raw listings.
+mogul_userdata/
+# The TikTok catalog isn't shared (nobody wants to mirror all of it).
+# MOGUL pushes mogul_json/ on purpose: at merge time, ignore
+# mogul_json/tiktok/ there instead.
 mogul_json/
 mogul_reports/
 

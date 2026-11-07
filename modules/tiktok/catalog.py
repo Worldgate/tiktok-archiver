@@ -1,7 +1,7 @@
 """The TikTok catalog: one JSON file per account.
 
-    mogul_json/tiktok/accounts/<uploader_id>.json
-    mogul_json/tiktok/blocked.json
+    mogul_json/tiktok/<uploader_id>.json
+    mogul_userdata/tiktok/blocked.json   (block list: private, per user)
 
 JSON is the source of truth (same rule as MOGUL). Everything about an
 account lives in its file: who it is, its run state, and every video
@@ -152,8 +152,8 @@ class Account:
 class Catalog:
     def __init__(self, settings):
         self.settings = settings
-        self.dir = os.path.join(settings.catalog_dir, "accounts")
-        self.blocked_path = os.path.join(settings.catalog_dir, "blocked.json")
+        self.dir = settings.catalog_dir
+        self.blocked_path = settings.blocked_path
         self._accounts = None
 
     # --- accounts ---
@@ -165,7 +165,8 @@ class Catalog:
             self._accounts = []
             if os.path.isdir(self.dir):
                 for name in sorted(os.listdir(self.dir)):
-                    if name.endswith(".json") and not name.startswith("."):
+                    if name.endswith(".json") and not name.startswith(".") \
+                            and name[:-5].isdigit():
                         path = os.path.join(self.dir, name)
                         try:
                             self._accounts.append(Account(path, store.load(path)))

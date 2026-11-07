@@ -15,17 +15,19 @@
 # Not used by the TikTok module yet; kept so this matches MOGUL.
 incoming = "mogul_incoming"
 
-# Everything private for TikTok lives in mogul_json/tiktok/:
-#   accounts/     the catalog, one JSON file per account (back this up)
+# The catalog. TikTok's is mogul_json/tiktok/<account id>.json, one file
+# per account (back it up). Not shared: in .gitignore.
+json_store = "mogul_json"
+
+# Private, user-specific files: never goes to GitHub. One subfolder per
+# module. TikTok keeps here (mogul_userdata/tiktok/):
+#   cookies.txt   your browser cookies
 #   blocked.json  the block list
 #   reports/      one report per run
 #   state/        latest raw listings + update queue (safe to delete)
-#   cookies.txt   your browser cookies
-# The whole mogul_json/ folder is in .gitignore.
-json_store = "mogul_json"
+userdata = "mogul_userdata"
 
-# Reports for MOGUL modules. The TikTok module keeps its own reports in
-# mogul_json/tiktok/reports instead (see [tiktok] below).
+# Reports for MOGUL modules (TikTok's go in mogul_userdata/tiktok/reports).
 reports = "mogul_reports"
 
 # Whole-file hashes stored for every video, on top of xxh64 (always taken).
@@ -41,7 +43,7 @@ library = "mogul_library/tiktok"
 # Where validate moves files it couldn't repair. Nothing is ever deleted.
 quarantine = "mogul_quarantine/tiktok"
 
-# These three default to mogul_json/tiktok/ (leave them "" for that).
+# These three default to mogul_userdata/tiktok/ (leave them "" for that).
 # Only set them to put something elsewhere.
 #   state    latest raw yt-dlp listings + the update queue (for --resume)
 #   reports  one report per run

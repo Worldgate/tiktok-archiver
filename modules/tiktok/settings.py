@@ -5,8 +5,8 @@ import os
 DEFAULTS = {
     "library": "mogul_library/tiktok",
     "quarantine": "mogul_quarantine/tiktok",
-    # Empty = inside the catalog folder (mogul_json/tiktok/...), so
-    # everything private for TikTok sits in one place.
+    # Empty = inside mogul_userdata/tiktok/, the private folder for
+    # anything tied to this user (never goes to GitHub).
     "state": "",
     "reports": "",
     "cookies": "",
@@ -47,11 +47,20 @@ class Settings:
         """mogul_json/tiktok: one JSON file per account."""
         return os.path.join(self.config.json_store, "tiktok")
 
+    @property
+    def userdata_dir(self):
+        """mogul_userdata/tiktok: private, user-specific files ([core] userdata)."""
+        return os.path.join(self.config.folder("userdata", "mogul_userdata"), "tiktok")
+
+    @property
+    def blocked_path(self):
+        return os.path.join(self.userdata_dir, "blocked.json")
+
     def _private(self, key, default_name):
         value = self.data.get(key)
         if value:
             return self.config.resolve(value)
-        return os.path.join(self.catalog_dir, default_name)
+        return os.path.join(self.userdata_dir, default_name)
 
     @property
     def reports_dir(self):
