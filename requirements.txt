@@ -1,0 +1,3 @@
+xxhash
+blake3
+yt-dlp[default,curl-cffi]

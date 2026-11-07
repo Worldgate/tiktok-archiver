@@ -1,0 +1,104 @@
+# TikTok Archiver settings
+#
+# Same file name and layout as MOGUL's mogul.toml on purpose: when this
+# merges into MOGUL, the [tiktok] section below gets pasted into MOGUL's
+# mogul.toml as-is.
+#
+# THIS FILE GOES TO GITHUB. Don't put real drive paths in it: put those in
+# mogul.local.toml instead (see mogul.local.toml.example). mogul.local.toml
+# never goes to GitHub and overrides anything here.
+#
+# Folder paths can be absolute ("/mnt/STORAGE1/..."), start with "~",
+# or be relative. Relative paths are relative to the folder this file is in.
+
+[core]
+# Not used by the TikTok module yet; kept so this matches MOGUL.
+incoming = "mogul_incoming"
+
+# The catalog: one JSON file per TikTok account, under mogul_json/tiktok/.
+# This is the source of truth: back it up.
+json_store = "mogul_json"
+
+# Each run writes a report here (what happened, errors, skips).
+reports = "mogul_reports"
+
+# Whole-file hashes stored for every video, on top of xxh64 (always taken).
+# Choices: blake3, sha256, sha512, sha1, md5
+hashes = ["blake3", "sha256"]
+
+[tiktok]
+# --- Folders ---
+# Where videos live. One folder per account (see folder_template).
+# To point it at another drive, set it in mogul.local.toml.
+library = "mogul_library/tiktok"
+
+# Where validate moves files it couldn't repair. Nothing is ever deleted.
+quarantine = "mogul_quarantine/tiktok"
+
+# Working files: the latest raw yt-dlp listing per account and the
+# update queue (for --resume). Safe to delete; it gets rebuilt.
+state = "mogul_state/tiktok"
+
+# Browser cookies (Netscape cookies.txt format) for age-restricted or
+# login-only accounts. Used automatically if the file exists.
+cookies = "cookies.txt"
+
+# --- Naming ---
+# Folder inside the library for each account. Tokens:
+#   {uid}       numeric account ID          7399126950817711122
+#   {uid19}     same, zero-padded to 19 digits (the old tiktok_cache layout)
+#   {handle}    current handle (changes!)   aiart_jp
+#   {category}  primary category            aigen
+# {uid19} is the default because handles change and IDs don't.
+folder_template = "{uid19}"
+
+# Filename for each video, extension added automatically. Tokens:
+#   {yyyy} {mm} {dd}  upload date (0000.00.00 if unknown)
+#   {id}              TikTok video ID
+filename_template = "{yyyy}.{mm}.{dd}-{id}"
+
+# File types counted as downloaded media when scanning folders.
+extensions = ["mp4", "webm", "mkv", "mov", "m4a", "mp3", "aac"]
+
+# --- yt-dlp ---
+# Pretend to be a real browser so TikTok doesn't block requests.
+# Check what's available with: yt-dlp --list-impersonate-targets
+# Set to "" to turn it off.
+impersonate = "Chrome-131:Android-14"
+
+# Seconds before giving up on one yt-dlp call. update also learns how
+# long each account takes and allows 3x that.
+timeout = 120
+
+# Seconds to wait between accounts (a random time in this range).
+rate_min = 2
+rate_max = 6
+
+# Seconds to wait between videos while downloading.
+video_delay_min = 0.5
+video_delay_max = 1.5
+
+# --- Accounts ---
+# add asks before adding an account with more videos than this.
+warn_over = 1000
+
+# Accounts with at least this many videos get fetched twice by update
+# (by ID and by handle) and the lists combined, because TikTok returns
+# different slices of big accounts depending on the URL.
+large_channel = 1000
+
+# An account is flagged (skipped until unflagged) after this many errors
+# in a row.
+error_threshold = 3
+
+# update first checks the newest few videos. If all of them are already
+# in the catalog, it skips the full (slow) listing.
+dormant_peek = 5
+
+# Accounts with this many "nothing new" checks in a row show as dormant
+# in list --dormant.
+dormant_threshold = 3
+
+# --- Validate ---
+# Rename audio-only .mp4 files (TikTok photo slideshows) to .m4a.
+rename_audio_only = true

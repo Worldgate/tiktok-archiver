@@ -1,0 +1,39 @@
+# --- Media never goes to GitHub ---
+mogul_library/
+mogul_quarantine/
+mogul_incoming/
+
+# Safety net: block audio/video files anywhere in the repo
+*.mp4
+*.webm
+*.mkv
+*.mov
+*.m4a
+*.mp3
+*.aac
+*.ogg
+*.opus
+*.part
+
+# --- Kept on this machine only ---
+# The catalog. MOGUL pushes its catalog to GitHub on purpose; this one is
+# kept private for now because it lists every account you follow. Delete
+# this line if you want it versioned in git.
+mogul_json/
+
+# Run reports and working files (raw listings, update queue)
+mogul_reports/
+mogul_state/
+
+# --- This machine's settings, cookies and secrets ---
+mogul.local.toml
+secrets.toml
+cookies.txt
+*cookies*.txt
+.env
+
+# --- Python ---
+__pycache__/
+*.pyc
+.venv/
+venv/
