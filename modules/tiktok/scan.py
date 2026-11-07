@@ -142,7 +142,7 @@ def run(args, config):
             elif info["has_audio"]:
                 if (status.get("check") or {}).get("result") not in ("ok", "repaired"):
                     status["check"] = {"result": "ok", "date": when}
-            else:
+            elif (status.get("check") or {}).get("result") != "silent":
                 status.pop("check", None)  # no audio: validate will repair
             print(f"{tag} {action:<10} {name}" + ("" if info["has_audio"] else "  (no audio)"))
         info["location"] = "library"

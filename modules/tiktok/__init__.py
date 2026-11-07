@@ -5,6 +5,8 @@ can be dropped into MOGUL's modules/ folder as-is.
 
 Usual flow:
   add (once per account) → update → download → validate
+Coming from the old scripts:
+  import-old → scan → update → download → validate
 Starting fresh with videos already on disk:
   add the accounts → scan → update → download → validate
 """
@@ -30,6 +32,8 @@ ACTIONS = {
     "scan": "Catalog videos already in the library (moves nothing)",
     "validate": "Check downloaded files; repair missing audio; quarantine broken ones",
     "silent": "Mark videos as really silent and bring them back from quarantine",
+    # bringing in the old scripts' data
+    "import-old": "Import accounts, old listings and skips from the old tiktok_metadata folder",
 }
 
 ACCOUNT_ACTIONS = ("add", "list", "info", "tag", "untag", "check", "remove", "block",
@@ -58,6 +62,9 @@ def run(action, args, config):
     if action == "silent":
         from . import validate
         return validate.silent(args, config)
+    if action == "import-old":
+        from . import legacy
+        return legacy.run(args, config)
     raise SystemExit(f"tiktok has no action '{action}'. Actions: {', '.join(ACTIONS)}")
 
 
@@ -77,3 +84,6 @@ def add_arguments(action, parser):
     elif action in ("validate", "silent"):
         from . import validate
         validate.add_arguments(action, parser)
+    elif action == "import-old":
+        from . import legacy
+        legacy.add_arguments(parser)

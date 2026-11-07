@@ -3,10 +3,9 @@
 Nothing is downloaded here. Each video TikTok lists gets an entry with its
 title and upload date; download then fetches the ones without a file.
 
-Videos are never removed from the catalog. When a video stops showing up
-in an account's listing it gets "not_listed_since" (deleted, made private,
-or TikTok just didn't return it that time). If it shows up again, that
-mark is cleared.
+Videos are never removed from the catalog. How listings are merged
+(first/last seen, not_listed_since, which metadata is kept) is in
+listing.py, shared with import-old.
 """
 
 import gzip
@@ -16,12 +15,9 @@ import time
 
 from mogul_core import store
 
+from . import listing
 from .common import add_filters, days_ago, elapsed, pause, setup, write_report
 from .ytdlp import Ytdlp, tiktok_url
-
-LISTING_KEYS = ("title", "timestamp", "duration", "view_count", "like_count",
-                "comment_count", "repost_count")
-
 
 def queue_path(s):
     return os.path.join(s.state_dir, "update-queue.txt")
@@ -64,41 +60,6 @@ def save_dump(s, uid, dump):
     with gzip.open(tmp, "wt", encoding="utf-8") as f:
         json.dump(dump, f, ensure_ascii=False)
     os.replace(tmp, path)
-
-
-def merge_listing(acc, entries, when, complete):
-    """Add/refresh listing info for every entry. Returns number of new videos.
-    complete=True means this listing should hold every video, so ones
-    missing from it get not_listed_since."""
-    new = 0
-    seen = set()
-    for e in entries:
-        vid = str(e.get("id") or "")
-        if not vid.isdigit():
-            continue
-        seen.add(vid)
-        v = acc.video(vid)
-        listing = v.setdefault("listing", {})
-        if not listing.get("first_seen"):
-            listing["first_seen"] = when
-            if not v.get("file"):
-                new += 1
-        title = e.get("title") or e.get("description")
-        if title:
-            listing["title"] = title
-        for key in LISTING_KEYS[1:]:
-            if e.get(key) is not None:
-                listing[key] = e[key]
-        if e.get("url"):
-            listing["url"] = e["url"]
-        listing["last_seen"] = when
-        listing.pop("not_listed_since", None)
-    if complete and seen:
-        for vid, v in acc.videos.items():
-            listing = v.get("listing")
-            if listing and vid not in seen and not listing.get("not_listed_since"):
-                listing["not_listed_since"] = when
-    return new
 
 
 def effective_timeout(s, acc, default):
@@ -223,7 +184,7 @@ def run(args, config):
                     entries.setdefault(str(e["id"]), e)
         entries = list(entries.values())
         complete = len(good) == len(results)
-        new = merge_listing(acc, entries, when, complete)
+        new = listing.merge(acc, entries, when, complete)
         total_new += new
 
         merged = dict(good[0]["dump"])

@@ -48,7 +48,24 @@ Most actions take `--name @handle` (or ID) for one account,
 `--category horror` for one category, and `--dry-run`.
 `archiver.py tiktok <action> --help` lists everything.
 
-## Starting with videos you already have
+## Coming from the old scripts
+
+```bash
+archiver.py tiktok import-old --from /path/to/tiktok_metadata
+```
+
+Brings in your accounts (handles, categories/tags, notes, block list,
+timeout overrides) from `accounts.db`, every old listing from `flatdumps/`
+and `flatdump_archive/`, and the skip lists and silent/repaired marks from
+`validate/`. Nothing in the old folder is changed. Older dumps kept
+somewhere else? Add `--dumps /path/to/folder` (as many as you like).
+Videos that were deleted long ago stay in the catalog with the dates they
+were seen. Running it again only adds what's missing.
+
+Then point `library` at your old `tiktok_cache` in `mogul.local.toml` and
+run `archiver.py tiktok scan`.
+
+## Starting with videos you already have (no old database)
 
 1. Point `library` at your existing folders in `mogul.local.toml`
    (the old `tiktok_cache` layout, one zero-padded ID folder per account,
@@ -77,6 +94,7 @@ Most actions take `--name @handle` (or ID) for one account,
 | `scan` | Catalog files already in the library (`--forget-missing`) |
 | `validate` | Check files, repair audio, quarantine broken ones (`--list`, `--recheck`, `--no-repair`) |
 | `silent ID ...` | Mark videos as really silent (`--folder` takes IDs from filenames) |
+| `import-old --from PATH` | Import the old scripts' accounts, listings and skips (`--dumps`, `--dry-run`) |
 
 ## Where things go
 

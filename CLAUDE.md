@@ -18,8 +18,13 @@ waiting**: same CLI, same core, same rules, so merging into
 ## Current goal
 
 The core loop (accounts → update → download → validate, plus scan for
-videos already on disk) on the new JSON catalog. Started fresh: no
-migration from the old SQLite databases (decided 2026-11-07).
+videos already on disk) on the new JSON catalog, plus `import-old` to pull
+in the old scripts' accounts.db and years of old flatdumps (decided
+2026-11-07, replacing the earlier "start fresh" plan). Next step:
+Mavrick runs it against his real old data and real TikTok.
+
+Planned, not built: a SQLite index rebuilt from the JSON (JSON stays the
+truth; the DB is a disposable failsafe/speed-up, same rule as MOGUL).
 
 ## Keeping it mergeable (the main rule)
 
@@ -80,7 +85,9 @@ modules/tiktok/
   common.py            reports, pauses, shared options
   accounts.py          add, list, info, tag, untag, check, remove, block,
                        unblock, flagged, unflag, timeout
+  listing.py           merging yt-dlp listings: dates, kept metadata fields
   update.py            video lists into the catalog
+  legacy.py            import-old: old accounts.db, flatdumps, skips
   download.py          download + skipped
   scan.py              catalog files already on disk
   validate.py          validate + silent
@@ -121,7 +128,10 @@ modules/tiktok/
             "timeout_override": 600},
   "videos": {
     "7400000000000000002": {
-      "listing": {"title": "...", "timestamp": 1730172800, "url": "...",
+      "listing": {"title": "...", "description": "...", "timestamp": 1730172800,
+                  "duration": 31, "view_count": 1, "like_count": 1, "comment_count": 1,
+                  "repost_count": 1, "save_count": 1, "track": "...", "artists": [],
+                  "hashtags": ["yeti"], "url": "...",
                   "first_seen": "...", "last_seen": "...", "not_listed_since": "..."},
       "status": {"downloaded": "...",
                  "check": {"result": "ok|repaired|audio_only|silent|unreadable|no_audio",
@@ -178,6 +188,27 @@ modules/tiktok/
   `ffmpeg -c copy` its audio into the HQ video, verify, replace in place,
   record the original's hash. Repair failed or unreadable → quarantine
   (moved, never deleted). `--list` shows quarantined files.
+- **Listing merges** (listing.py, used by update and import-old): dates
+  are compared as real times (old data is UTC `Z`, new is local offset).
+  first_seen = earliest listing, last_seen = latest; metadata only from a
+  listing at least as new as last_seen, so old dumps never overwrite newer
+  info. not_listed_since = first listing after last_seen without it;
+  cleared by a newer listing. Kept fields: title, description (dropped if
+  same as title), timestamp, duration, view/like/comment/repost/save
+  counts, track/artist(s)/album, tags/categories, url, plus hashtags
+  parsed from title+description. Thumbnails/CDN links skipped (expire).
+- **import-old** `--from <old tiktok_metadata>` `[--dumps PATH ...]`:
+  read-only on the old data. accounts.db → accounts (create, or fill in
+  missing fields; current handle never replaced, old one added to
+  history; tags merged; earliest `added` wins), block list, timeout
+  overrides. Dumps: `flatdump_archive/<uid>/YYYY-MM-DD_HH-MM-SS.json.gz`
+  (date from name, UTC), `flatdumps/<uid>.json` (date = mtime), and any
+  `--dumps` folders (uid from content, date from a stamp in the name or
+  mtime), merged oldest first. `validate/<uid>.db`: skipped_videos →
+  status.skip, valid_silent → check silent, audio_fixed → status.repaired;
+  plus `audio_fixed.jsonl`. Error flags are not carried over. Safe to
+  rerun (tested: second run changes nothing). Dumps for accounts not in
+  the DB are reported, not created. Then run scan for the files.
 - **silent**: marks videos `check.result = silent` and moves them back
   from quarantine. Replaces `mark_valid.py` and `validate.sh`.
 
@@ -191,6 +222,7 @@ TikTok yet.
 
 ## Not built yet (from the old scripts)
 
+- **SQLite index** rebuilt from the JSON (failsafe / faster queries).
 - **lostmedia**: identify unknown video files via TikTok's oEmbed API
   (batched, cached), then hand matched files to import.
 - **import**: move `<uid>_<handle>/` folders from an incoming folder into
