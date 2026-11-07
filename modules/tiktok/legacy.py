@@ -21,6 +21,9 @@ Listings are merged oldest first with the same rules as update
 (listing.py): every video ever seen is kept, with first/last seen dates
 and not_listed_since for ones that disappeared.
 
+--category / --name import just part of it, so it can be done in chunks
+(one category at a time). The block list comes over on an unfiltered run.
+
 Safe to run more than once: it only adds what's missing and never
 overwrites newer information with older.
 
@@ -37,6 +40,7 @@ import sqlite3
 from mogul_core import store
 
 from . import listing
+from .catalog import clean_name, split_tags
 from .common import setup, write_report
 from .ytdlp import PERMANENT
 
@@ -203,7 +207,13 @@ def run(args, config):
               "dumps": 0, "bad_dumps": [], "dumps_without_account": {},
               "videos_added": 0, "skips_added": 0, "silent": 0, "repaired": 0,
               "unknown_dumps": []}
-    only = cat.find(args.name).uid if args.name and cat.find(args.name) else None
+    # Which accounts to import: None = all. --name and --category narrow it.
+    want_tags = split_tags(args.category)
+    filtered = bool(args.name or want_tags)
+    selected = set()
+    for acc in cat.select(name=args.name, category=args.category, statuses=None) \
+            if filtered else []:
+        selected.add(acc.uid)
 
     # 1. accounts + block list from accounts.db
     db = open_db(os.path.join(meta, "accounts.db"))
@@ -212,17 +222,27 @@ def run(args, config):
         for r in table_rows(db, "SELECT uploader_id, category FROM account_categories"):
             tagmap.setdefault(str(r["uploader_id"]), []).append(r["category"].lower().strip())
         rows = table_rows(db, "SELECT * FROM accounts ORDER BY added_at")
-        print(f"accounts.db: {len(rows)} account(s)")
+        if filtered:
+            name = clean_name(args.name) if args.name else None
+            for row in rows:
+                uid = str(row["uploader_id"])
+                tags = {(row["category"] or "general").lower().strip()} | set(tagmap.get(uid, []))
+                if name and name not in (uid, clean_name(row["handle"] or "")):
+                    continue
+                if want_tags and not all(t in tags for t in want_tags):
+                    continue
+                selected.add(uid)
+        print(f"accounts.db: {len(rows)} account(s)"
+              + (f", importing {len(selected)} that match" if filtered else ""))
         for row in rows:
             uid = str(row["uploader_id"])
-            if args.name and uid != only and (row["handle"] or "").lower() != args.name.lstrip("@").lower():
+            if filtered and uid not in selected:
                 continue
             acc, created = merge_account(cat, row, tagmap.get(uid, []), now)
-            only = only or (acc.uid if args.name else None)
             (report["accounts_added"] if created else report["accounts_updated"]).append(acc.uid)
             if not args.dry_run:
                 acc.save()
-        if not args.name:
+        if not filtered:
             blocked = cat.blocked()
             for r in table_rows(db, "SELECT * FROM blocked"):
                 handle = (r["handle"] or "").lstrip("@").lower() or None
@@ -247,7 +267,7 @@ def run(args, config):
     total = sum(len(v) for v in dumps.values())
     print(f"\nOld listings: {total:,} dump(s) for {len(dumps):,} account(s)")
     for uid, items in sorted(dumps.items()):
-        if only and uid != only:
+        if filtered and uid not in selected:
             continue
         acc = cat.by_uid(uid)
         if not acc:
@@ -279,7 +299,7 @@ def run(args, config):
         for name in sorted(os.listdir(vdir)):
             uid = name[:-3] if name.endswith(".db") else ""
             acc = cat.by_uid(uid) if uid.isdigit() else None
-            if not acc or (only and uid != only):
+            if not acc or (filtered and uid not in selected):
                 continue
             conn = open_db(os.path.join(vdir, name))
             changed = False
@@ -319,7 +339,7 @@ def run(args, config):
                     continue
                 acc = cat.by_uid(str(r.get("uploader_id") or ""))
                 vid = str(r.get("video_id") or "")
-                if not acc or not vid.isdigit() or (only and acc.uid != only):
+                if not acc or not vid.isdigit() or (filtered and acc.uid not in selected):
                     continue
                 st = acc.video(vid).setdefault("status", {})
                 if not st.get("repaired"):
@@ -357,4 +377,7 @@ def add_arguments(p):
     p.add_argument("--dumps", action="append", metavar="PATH",
                    help="another folder of old dumps to include (can be given more than once)")
     p.add_argument("--name", help="only this account (@handle or ID)")
+    p.add_argument("--category",
+                   help="only accounts with this category/tag in the old database "
+                        "(comma-separated = must have all); run again per category")
     p.add_argument("--dry-run", action="store_true", help="show what would be imported")

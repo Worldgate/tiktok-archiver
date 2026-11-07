@@ -62,6 +62,17 @@ somewhere else? Add `--dumps /path/to/folder` (as many as you like).
 Videos that were deleted long ago stay in the catalog with the dates they
 were seen. Running it again only adds what's missing.
 
+Doing it in chunks, one category at a time:
+
+```bash
+archiver.py tiktok import-old --from /path/to/tiktok_metadata --category aigen
+archiver.py tiktok move --category aigen --from /path/to/old/tiktok_cache
+archiver.py tiktok scan --category aigen
+```
+
+`move --from` pulls that category's account folders out of the old big
+folder onto the drive set for the category (see below).
+
 Have more than one old setup? Run it once for each `--from` folder; the
 second run adds to the first.
 
@@ -115,7 +126,7 @@ check the copy matches, then remove the original. Nothing is overwritten.
 | `validate` | Check files, repair audio, quarantine broken ones (`--list`, `--recheck`, `--no-repair`) |
 | `silent ID ...` | Mark videos as really silent (`--folder` takes IDs from filenames) |
 | `move` | Move account folders to where the settings say (`--from`, `--dry-run`) |
-| `import-old --from PATH` | Import the old scripts' accounts, listings and skips (`--dumps`, `--dry-run`) |
+| `import-old --from PATH` | Import the old scripts' accounts, listings and skips (`--category`, `--dumps`, `--dry-run`) |
 
 ## Where things go
 

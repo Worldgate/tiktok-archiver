@@ -214,7 +214,9 @@ modules/tiktok/
   `--dumps` folders (uid from content, date from a stamp in the name or
   mtime), merged oldest first. `validate/<uid>.db`: skipped_videos →
   status.skip, valid_silent → check silent, audio_fixed → status.repaired;
-  plus `audio_fixed.jsonl`. Error flags are not carried over. Safe to
+  plus `audio_fixed.jsonl`. Error flags are not carried over.
+  `--category` (tags from the old DB, comma = all) / `--name` import
+  in chunks; the block list only comes over on an unfiltered run. Safe to
   rerun (tested: second run changes nothing). Dumps for accounts not in
   the DB are reported, not created. Then run scan for the files.
 - **move**: for each account, looks for its folder under every library
@@ -229,6 +231,15 @@ modules/tiktok/
   Tested across two filesystems (/dev/shm vs disk).
 - **silent**: marks videos `check.result = silent` and moves them back
   from quarantine. Replaces `mark_valid.py` and `validate.sh`.
+
+## Mavrick's import plan (2026-11-07)
+
+One category at a time: `import-old --category X` → `move --category X
+--from /old/big/tiktok_cache` (copies that category's ID folders to its
+drive) → `scan --category X` → later update/download/validate. He likes
+seeing which videos people delete (drama vs. dropped ads), which is why
+all old dumps go in. Idea, not built: a view listing deleted videos
+(`not_listed_since`) per account or across all.
 
 ## Testing without TikTok
 
