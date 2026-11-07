@@ -1,21 +1,14 @@
 #!/usr/bin/env python3
 """
-TikTok Archiver - a MOGUL-shaped app
+MOGUL - Metadata Organizer & Global Unified Library
 
 Usage:
-  archiver.py <media type> <action> [options]
+  mogul.py <media type> <action> [options]
 
 Examples:
-  archiver.py tiktok add @someuser --category comedy
-  archiver.py tiktok update
-  archiver.py tiktok download --dry-run
-  archiver.py tiktok validate
-  archiver.py tiktok download --help        options for that action
-
-This file works exactly like MOGUL's mogul.py. The TikTok code lives in
-modules/tiktok/, and mogul_core/ is a copy of MOGUL's core, so merging
-into MOGUL means copying modules/tiktok/ over and adding "tiktok" to
-MEDIA_TYPES in mogul.py.
+  mogul.py tiktok update            fetch each account's video list
+  mogul.py tiktok download          download what's new
+  mogul.py tiktok scan --help       options for that action
 """
 
 import argparse
@@ -23,7 +16,7 @@ import importlib
 import sys
 
 if sys.version_info < (3, 11):
-    sys.exit("This needs Python 3.11 or newer (you have "
+    sys.exit("MOGUL needs Python 3.11 or newer (you have "
              f"{sys.version_info.major}.{sys.version_info.minor}).")
 
 from mogul_core import VERSION
@@ -41,7 +34,7 @@ def main():
         print("\nMedia types:", ", ".join(MEDIA_TYPES))
         return 0
     if argv[0] in ("-V", "--version"):
-        print(f"TikTok Archiver (MOGUL core {VERSION})")
+        print(f"MOGUL {VERSION}")
         return 0
 
     media_type = argv[0]
@@ -50,7 +43,7 @@ def main():
     module = importlib.import_module(MEDIA_TYPES[media_type])
 
     if len(argv) < 2 or argv[1] in ("-h", "--help"):
-        print(f"archiver.py {media_type} <action> [options]\n\nActions:")
+        print(f"mogul.py {media_type} <action> [options]\n\nActions:")
         for name, text in module.ACTIONS.items():
             print(f"  {name:<10} {text}")
         return 0
@@ -60,7 +53,7 @@ def main():
         sys.exit(f"{media_type} has no action '{action}'. Actions: {', '.join(module.ACTIONS)}")
 
     parser = argparse.ArgumentParser(
-        prog=f"archiver.py {media_type} {action}",
+        prog=f"mogul.py {media_type} {action}",
         description=module.ACTIONS[action],
     )
     parser.add_argument("--config", help="use this mogul.toml instead of the default one")

@@ -17,7 +17,7 @@ Per file:
   MISSING     cataloged but not on disk (scan --forget-missing to re-download)
 
 Files already checked and unchanged since are skipped (--recheck to redo).
-Videos that really are silent: mark them with "archiver.py tiktok silent".
+Videos that really are silent: mark them with "mogul.py tiktok silent".
 """
 
 import os
@@ -255,7 +255,7 @@ def list_problems(s, cat, args):
     print(f"\n{found} quarantined, {repaired} repaired so far.")
     if found:
         print(f"Quarantine folder: {s.quarantine_dir}\n"
-              "Really silent? Mark them: archiver.py tiktok silent VIDEO_ID ... "
+              "Really silent? Mark them: mogul.py tiktok silent VIDEO_ID ... "
               "(or --folder PATH)")
 
 

@@ -13,7 +13,7 @@ from .ytdlp import Ytdlp
 
 def _need(acc, name):
     if not acc:
-        sys.exit(f"NOT FOUND: {name} (check archiver.py tiktok list)")
+        sys.exit(f"NOT FOUND: {name} (check mogul.py tiktok list)")
     return acc
 
 
@@ -139,7 +139,7 @@ def tag(args, config, remove=False):
     print(f"{acc.label()}\n  primary : {acc.category}\n  tags    : {', '.join(acc.tags)}")
     if moved_drive or ("{category}" in s.folder_template and getattr(args, "primary", False)):
         print(f"  Its folder is now {naming.account_folder(s, acc)}\n"
-              f"  Run: archiver.py tiktok move --name {acc.uid}")
+              f"  Run: mogul.py tiktok move --name {acc.uid}")
 
 
 # ─── list / info ────────────────────────────────────────────────────────

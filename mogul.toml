@@ -42,7 +42,7 @@ library = "mogul_library/tiktok"
 
 # Different drives per category: add a [tiktok.drives] section to
 # mogul.local.toml (see the example there). Categories not listed use
-# library. After changing it, run "archiver.py tiktok move".
+# library. After changing it, run "mogul.py tiktok move".
 
 # Where validate moves files it couldn't repair. Nothing is ever deleted.
 quarantine = "mogul_quarantine/tiktok"

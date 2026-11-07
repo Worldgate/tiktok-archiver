@@ -14,7 +14,7 @@
 
 [tiktok]
 # Point this at your existing video folders (the old tiktok_cache),
-# then run "archiver.py tiktok scan" to catalog what's already there.
+# then run "mogul.py tiktok scan" to catalog what's already there.
 # library = "/mnt/STORAGE1/tiktok_cache"
 # quarantine = "/mnt/STORAGE1/tiktok_quarantine"
 # Cookies default to mogul_userdata/tiktok/cookies.txt; only set this to keep
@@ -23,7 +23,7 @@
 
 # Different drives per category (primary category of each account).
 # Categories not listed here use library above. After changing these,
-# run "archiver.py tiktok move" to carry the files over.
+# run "mogul.py tiktok move" to carry the files over.
 # [tiktok.drives]
 # aigen = "/mnt/drive1/tiktok-archive"
 # commentary = "/mnt/drive2/tiktok-archive"

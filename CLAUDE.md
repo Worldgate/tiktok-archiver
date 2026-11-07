@@ -28,9 +28,10 @@ truth; the DB is a disposable failsafe/speed-up, same rule as MOGUL).
 
 ## Keeping it mergeable (the main rule)
 
-- **CLI shape:** `archiver.py tiktok <action> [options]`, exactly like
-  `mogul.py <media type> <action>`. `archiver.py` is a copy of `mogul.py`
-  with only `tiktok` in `MEDIA_TYPES`.
+- **CLI shape:** `mogul.py tiktok <action> [options]`. `mogul.py` here is
+  MOGUL's own `mogul.py` with only `tiktok` in `MEDIA_TYPES` (plus help
+  examples). Mavrick wants the final commands to be `./mogul.py tiktok ...`
+  from day one (decided 2026-11-07).
 - **`mogul_core/` is a copy of MOGUL's core. Don't change it here.** If the
   TikTok module needs something general, put it in the module (or change
   it in MOGUL first and copy it back).
@@ -52,8 +53,9 @@ truth; the DB is a disposable failsafe/speed-up, same rule as MOGUL).
   (Mavrick: nobody wants to mirror all of it), so gitignored. Settings: `mogul.toml` public with safe defaults,
   `mogul.local.toml` private (gitignored), `.example` is the template.
 
-Merging later = copy `modules/tiktok/` into MOGUL, add
-`"tiktok": "modules.tiktok"` to `MEDIA_TYPES` in `mogul.py`, paste the
+Merging later = copy `modules/tiktok/` into MOGUL (don't copy this
+`mogul.py` over MOGUL's), add `"tiktok": "modules.tiktok"` to
+`MEDIA_TYPES` in MOGUL's `mogul.py`, paste the
 `[tiktok]` section into MOGUL's `mogul.toml`, and copy over `mogul_json/tiktok/`.
 Things to check at merge time: MOGUL's `.gitignore` pushes `mogul_json/`,
 so add `mogul_json/tiktok/` and `mogul_userdata/` to its `.gitignore`, and `media.py`'s ffprobe helper could move
@@ -72,7 +74,7 @@ into MOGUL's core for future video modules.
 ## Code layout
 
 ```
-archiver.py            CLI entry point (copy of mogul.py)
+mogul.py               CLI entry point (MOGUL's mogul.py, tiktok only)
 mogul.toml             settings ([core] shared, [tiktok] module)
 mogul_core/            copy of MOGUL's core: config, store, progress, hashing, ...
 modules/tiktok/

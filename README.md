@@ -5,8 +5,10 @@ shape as my [MOGUL](https://github.com/Worldgate/mogul) media cataloger so
 it can be merged into it later.
 
 ```
-archiver.py tiktok <action> [options]
+./mogul.py tiktok <action> [options]
 ```
+
+Same command as MOGUL itself, so nothing changes when this merges in.
 
 ## Setup
 
@@ -39,19 +41,19 @@ accounts that used to work start asking for a login, export them again.
 ## Everyday use
 
 ```bash
-archiver.py tiktok update        # get each account's video list
-archiver.py tiktok download      # download what's new
-archiver.py tiktok validate      # check files, repair missing audio
+mogul.py tiktok update        # get each account's video list
+mogul.py tiktok download      # download what's new
+mogul.py tiktok validate      # check files, repair missing audio
 ```
 
 Most actions take `--name @handle` (or ID) for one account,
 `--category horror` for one category, and `--dry-run`.
-`archiver.py tiktok <action> --help` lists everything.
+`mogul.py tiktok <action> --help` lists everything.
 
 ## Coming from the old scripts
 
 ```bash
-archiver.py tiktok import-old --from /path/to/tiktok_metadata
+mogul.py tiktok import-old --from /path/to/tiktok_metadata
 ```
 
 Brings in your accounts (handles, categories/tags, notes, block list,
@@ -65,9 +67,9 @@ were seen. Running it again only adds what's missing.
 Doing it in chunks, one category at a time:
 
 ```bash
-archiver.py tiktok import-old --from /path/to/tiktok_metadata --category aigen
-archiver.py tiktok move --category aigen --from /path/to/old/tiktok_cache
-archiver.py tiktok scan --category aigen
+mogul.py tiktok import-old --from /path/to/tiktok_metadata --category aigen
+mogul.py tiktok move --category aigen --from /path/to/old/tiktok_cache
+mogul.py tiktok scan --category aigen
 ```
 
 `move --from` pulls that category's account folders out of the old big
@@ -77,7 +79,7 @@ Have more than one old setup? Run it once for each `--from` folder; the
 second run adds to the first.
 
 Then point `library` (or `[tiktok.drives]`, below) at your old video
-folders in `mogul.local.toml` and run `archiver.py tiktok scan`.
+folders in `mogul.local.toml` and run `mogul.py tiktok scan`.
 
 ## Starting with videos you already have (no old database)
 
@@ -85,8 +87,8 @@ folders in `mogul.local.toml` and run `archiver.py tiktok scan`.
    (the old `tiktok_cache` layout, one zero-padded ID folder per account,
    is the default here).
 2. Add your accounts (a text file with one per line works):
-   `archiver.py tiktok add --file accounts.txt --category comedy`
-3. `archiver.py tiktok scan` catalogs what's already on disk.
+   `mogul.py tiktok add --file accounts.txt --category comedy`
+3. `mogul.py tiktok scan` catalogs what's already on disk.
 4. Then the usual `update` → `download` → `validate`.
 
 ## Different drives per category
@@ -101,7 +103,7 @@ commentary = "/mnt/drive2/tiktok-archive"
 
 Each account goes on the drive for its primary category; anything not
 listed uses `library`. To move a category to another drive later, change
-its line and run `archiver.py tiktok move` (try `--dry-run` first). If the
+its line and run `mogul.py tiktok move` (try `--dry-run` first). If the
 old drive is no longer listed anywhere in the settings, tell move where to
 look: `move --from /mnt/drive2/tiktok-archive`. Moves between drives copy,
 check the copy matches, then remove the original. Nothing is overwritten.

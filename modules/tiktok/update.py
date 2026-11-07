@@ -112,7 +112,7 @@ def run(args, config):
               end="", flush=True)
 
         if acc.flagged and not args.force:
-            print(" — SKIPPED (flagged; see archiver.py tiktok flagged)")
+            print(" — SKIPPED (flagged; see mogul.py tiktok flagged)")
             report["skipped_flagged"].append(acc.uid)
             done_in_queue(s, acc.uid)
             continue

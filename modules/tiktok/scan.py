@@ -200,10 +200,10 @@ def run(args, config):
             print(f"{key.replace('_', ' ').title():<11}: {len(report[key]):,}")
     print(f"Time       : {progress.elapsed()}")
     if report["unknown"]:
-        print("\nUNKNOWN files: add their accounts (archiver.py tiktok add ID --category X), "
+        print("\nUNKNOWN files: add their accounts (mogul.py tiktok add ID --category X), "
               "then scan again.")
     if report["misplaced"]:
-        print("MISPLACED files: archiver.py tiktok move puts them where the settings say.")
+        print("MISPLACED files: mogul.py tiktok move puts them where the settings say.")
     if report["missing"] and not args.forget_missing:
         print("MISSING files: scan --forget-missing clears them so download gets them again.")
     if args.dry_run:

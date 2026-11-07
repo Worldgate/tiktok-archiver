@@ -6,7 +6,7 @@ Per video:
   OK       downloaded, renamed to filename_template, details + hashes saved
   SKIP     a problem with that one video (deleted, private, photo post...).
            Saved with the reason so it isn't tried again every run.
-           See them with: archiver.py tiktok skipped
+           See them with: mogul.py tiktok skipped
   ERROR    a problem with the account or connection (rate limit, login
            needed, timeout). Counts toward flagging the account.
 
@@ -100,7 +100,7 @@ def run(args, config):
     for i, acc in enumerate(accs, 1):
         print(f"{elapsed(start)} [{i}/{len(accs)}] @{acc.handle} ({acc.category})")
         if acc.flagged and not args.force:
-            print("  SKIPPED — flagged (see archiver.py tiktok flagged)")
+            print("  SKIPPED — flagged (see mogul.py tiktok flagged)")
             report["accounts_skipped"].append({"uploader_id": acc.uid, "why": "flagged"})
             continue
         listed = sum(1 for v in acc.videos.values() if v.get("listing"))
@@ -185,11 +185,11 @@ def run(args, config):
     print(f"\n{'═' * 50}")
     print(f"Time        : {elapsed(start)}")
     print(f"Downloaded  : {len(report['downloaded'])}")
-    print(f"Skipped     : {len(report['skipped'])}  (see archiver.py tiktok skipped)")
+    print(f"Skipped     : {len(report['skipped'])}  (see mogul.py tiktok skipped)")
     print(f"Errors      : {len(report['errors'])}")
     needs = sum(1 for d in report["downloaded"] if d["check"] == "needs repair")
     if needs:
-        print(f"No audio    : {needs}  (run archiver.py tiktok validate to repair)")
+        print(f"No audio    : {needs}  (run mogul.py tiktok validate to repair)")
     if args.dry_run:
         print("\nDRY RUN — nothing was downloaded")
     else:
