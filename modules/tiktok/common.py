@@ -22,7 +22,7 @@ def stamp():
 
 
 def write_report(settings, action, data):
-    """mogul_reports/tiktok-<action>_<date>_<time>.json"""
+    """mogul_json/tiktok/reports/tiktok-<action>_<date>_<time>.json"""
     path = os.path.join(settings.reports_dir, f"tiktok-{action}_{stamp()}.json")
     data = {"action": f"tiktok {action}", "finished": store.now(), **data}
     store.save(path, data)

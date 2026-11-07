@@ -16,4 +16,6 @@
 # then run "archiver.py tiktok scan" to catalog what's already there.
 # library = "/mnt/STORAGE1/tiktok_cache"
 # quarantine = "/mnt/STORAGE1/tiktok_quarantine"
+# Cookies default to mogul_json/tiktok/cookies.txt; only set this to keep
+# them somewhere else.
 # cookies = "/home/you/tiktok_metadata/cookies.txt"

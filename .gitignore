@@ -16,14 +16,13 @@ mogul_incoming/
 *.part
 
 # --- Kept on this machine only ---
-# The catalog. MOGUL pushes its catalog to GitHub on purpose; this one is
-# kept private for now because it lists every account you follow. Delete
-# this line if you want it versioned in git.
+# Everything private for TikTok: catalog, block list, reports, raw
+# listings, cookies (all in mogul_json/tiktok/). It lists every account
+# you follow, so it never goes to GitHub.
+# (MOGUL pushes mogul_json/ on purpose: at merge time, ignore
+# mogul_json/tiktok/ there instead.)
 mogul_json/
-
-# Run reports and working files (raw listings, update queue)
 mogul_reports/
-mogul_state/
 
 # --- This machine's settings, cookies and secrets ---
 mogul.local.toml

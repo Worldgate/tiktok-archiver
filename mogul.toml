@@ -15,11 +15,17 @@
 # Not used by the TikTok module yet; kept so this matches MOGUL.
 incoming = "mogul_incoming"
 
-# The catalog: one JSON file per TikTok account, under mogul_json/tiktok/.
-# This is the source of truth: back it up.
+# Everything private for TikTok lives in mogul_json/tiktok/:
+#   accounts/     the catalog, one JSON file per account (back this up)
+#   blocked.json  the block list
+#   reports/      one report per run
+#   state/        latest raw listings + update queue (safe to delete)
+#   cookies.txt   your browser cookies
+# The whole mogul_json/ folder is in .gitignore.
 json_store = "mogul_json"
 
-# Each run writes a report here (what happened, errors, skips).
+# Reports for MOGUL modules. The TikTok module keeps its own reports in
+# mogul_json/tiktok/reports instead (see [tiktok] below).
 reports = "mogul_reports"
 
 # Whole-file hashes stored for every video, on top of xxh64 (always taken).
@@ -35,13 +41,15 @@ library = "mogul_library/tiktok"
 # Where validate moves files it couldn't repair. Nothing is ever deleted.
 quarantine = "mogul_quarantine/tiktok"
 
-# Working files: the latest raw yt-dlp listing per account and the
-# update queue (for --resume). Safe to delete; it gets rebuilt.
-state = "mogul_state/tiktok"
-
-# Browser cookies (Netscape cookies.txt format) for age-restricted or
-# login-only accounts. Used automatically if the file exists.
-cookies = "cookies.txt"
+# These three default to mogul_json/tiktok/ (leave them "" for that).
+# Only set them to put something elsewhere.
+#   state    latest raw yt-dlp listings + the update queue (for --resume)
+#   reports  one report per run
+#   cookies  browser cookies (Netscape cookies.txt format) for age-restricted
+#            or login-only accounts; used automatically if the file exists
+state = ""
+reports = ""
+cookies = ""
 
 # --- Naming ---
 # Folder inside the library for each account. Tokens:

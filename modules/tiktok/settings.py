@@ -5,8 +5,11 @@ import os
 DEFAULTS = {
     "library": "mogul_library/tiktok",
     "quarantine": "mogul_quarantine/tiktok",
-    "state": "mogul_state/tiktok",
-    "cookies": "cookies.txt",
+    # Empty = inside the catalog folder (mogul_json/tiktok/...), so
+    # everything private for TikTok sits in one place.
+    "state": "",
+    "reports": "",
+    "cookies": "",
     "folder_template": "{uid19}",
     "filename_template": "{yyyy}.{mm}.{dd}-{id}",
     "extensions": ["mp4", "webm", "mkv", "mov", "m4a", "mp3", "aac"],
@@ -44,9 +47,15 @@ class Settings:
         """mogul_json/tiktok: one JSON file per account."""
         return os.path.join(self.config.json_store, "tiktok")
 
+    def _private(self, key, default_name):
+        value = self.data.get(key)
+        if value:
+            return self.config.resolve(value)
+        return os.path.join(self.catalog_dir, default_name)
+
     @property
     def reports_dir(self):
-        return self.config.reports
+        return self._private("reports", "reports")
 
     @property
     def library_dir(self):
@@ -58,11 +67,11 @@ class Settings:
 
     @property
     def state_dir(self):
-        return self.config.resolve(self.data["state"])
+        return self._private("state", "state")
 
     @property
     def cookies_path(self):
-        return self.config.resolve(self.data["cookies"])
+        return self._private("cookies", "cookies.txt")
 
     @property
     def hashes(self):

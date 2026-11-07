@@ -35,13 +35,18 @@ migration from the old SQLite databases (decided 2026-11-07).
 - **Settings live in `[tiktok]` in `mogul.toml`.** Same file name and
   layering as MOGUL (`mogul.local.toml` overrides, gitignored).
 - **Folders use MOGUL's names** with a `tiktok` subfolder:
-  `mogul_json/tiktok/`, `mogul_library/tiktok/`, `mogul_reports/tiktok-*`.
+  `mogul_json/tiktok/`, `mogul_library/tiktok/`, `mogul_quarantine/tiktok/`.
+- **Everything private goes in `mogul_json/tiktok/`** (decided 2026-11-07):
+  catalog (`accounts/`), `blocked.json`, `reports/`, `state/`,
+  `cookies.txt`. `state`, `reports`, `cookies` settings default to "" =
+  that folder. Settings: `mogul.toml` public with safe defaults,
+  `mogul.local.toml` private (gitignored), `.example` is the template.
 
 Merging later = copy `modules/tiktok/` into MOGUL, add
 `"tiktok": "modules.tiktok"` to `MEDIA_TYPES` in `mogul.py`, paste the
 `[tiktok]` section into MOGUL's `mogul.toml`, and copy over `mogul_json/tiktok/`.
-Things to check at merge time: MOGUL's `.gitignore` pushes `mogul_json/`
-(this repo keeps it private), and `media.py`'s ffprobe helper could move
+Things to check at merge time: MOGUL's `.gitignore` pushes `mogul_json/`,
+so add `mogul_json/tiktok/` to its `.gitignore` (this repo keeps it private), and `media.py`'s ffprobe helper could move
 into MOGUL's core for future video modules.
 
 ## Environment
@@ -91,7 +96,7 @@ modules/tiktok/
   JavaScript numbers.
 - Videos are never removed from the catalog. Missing from a listing →
   `listing.not_listed_since`; seen again → cleared.
-- Raw yt-dlp listings are working state in `mogul_state/tiktok/dumps/`
+- Raw yt-dlp listings are working state in `mogul_json/tiktok/state/dumps/`
   (latest only, gzipped). The old flatdump snapshot archive was dropped:
   the catalog keeps every video ever seen anyway.
 
@@ -149,7 +154,7 @@ modules/tiktok/
   `large_channel`+ videos are listed twice (by channel URL/ID and by
   handle) and merged, because TikTok returns different slices of big
   accounts per URL. Timeout per account: override, else 3x last duration,
-  else default. Writes `mogul_state/tiktok/update-queue.txt`; `--resume`
+  else default. Writes `mogul_json/tiktok/state/update-queue.txt`; `--resume`
   continues an interrupted run.
 - **download**: listed videos with no file and no skip, newest first.
   yt-dlp writes `<id>.<ext>` into the account folder, then it's renamed to
