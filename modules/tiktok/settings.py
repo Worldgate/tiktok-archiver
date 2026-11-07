@@ -68,7 +68,27 @@ class Settings:
 
     @property
     def library_dir(self):
+        """The default library (for categories not listed in [tiktok.drives])."""
         return self.config.resolve(self.data["library"])
+
+    @property
+    def drives(self):
+        """{category: folder} from [tiktok.drives], paths resolved."""
+        raw = self.data.get("drives") or {}
+        return {str(k).lower().strip(): self.config.resolve(v) for k, v in raw.items() if v}
+
+    def library_for(self, category):
+        """Library folder for an account's primary category."""
+        return self.drives.get((category or "").lower().strip()) or self.library_dir
+
+    @property
+    def library_roots(self):
+        """Every library folder in use: the default plus each drive, no repeats."""
+        out = []
+        for path in [self.library_dir] + list(self.drives.values()):
+            if path not in out:
+                out.append(path)
+        return out
 
     @property
     def quarantine_dir(self):

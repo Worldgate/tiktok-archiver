@@ -4,6 +4,7 @@ For starting fresh with an existing collection (point library at your old
 tiktok_cache in mogul.local.toml, add the accounts, then scan), and as a
 health check later. Read-only: never moves, renames or deletes anything.
 
+Scans the default library and every [tiktok.drives] folder.
 A file is matched to an account by its folder (the folder name holds the
 account ID with the default folder_template), or by its video ID if update
 already listed it. The video ID comes from the filename.
@@ -15,6 +16,7 @@ Results per file:
   CHANGED    same file name, but size or date changed: re-read and saved
   DUPLICATE  a second file for a video that already has one; not recorded
   MISPLACED  belongs to a known account but isn't in that account's folder
+             (e.g. after changing [tiktok.drives]: run move)
   UNKNOWN    no account matches (add the account, then scan again)
   NO ID      no video ID in the filename
 Then:
@@ -58,28 +60,42 @@ def walk(folder, exts):
 
 def run(args, config):
     s, cat = setup(config)
-    root = os.path.abspath(args.path) if args.path else s.library_dir
-    if not os.path.isdir(root):
-        print(f"Folder not found: {root}")
+    if args.path:
+        roots = [os.path.abspath(args.path)]
+    else:
+        roots = s.library_roots  # the default library plus every [tiktok.drives] folder
+    missing_roots = [r for r in roots if not os.path.isdir(r)]
+    for r in missing_roots:
+        print(f"Folder not found (skipped): {r}")
+    roots = [r for r in roots if os.path.isdir(r)]
+    if not roots:
         return
     if args.name or args.category:
         accs = cat.select(name=args.name, category=args.category, statuses=None)
         if not accs:
             print("No accounts match.")
             return
-        folders = [naming.account_folder(s, a) for a in accs]
-        files = [f for d in folders if os.path.isdir(d) for f in walk(d, s.ext_set)]
+        items = []
+        for a in accs:
+            d = naming.account_folder(s, a)
+            if os.path.isdir(d):
+                items += [(s.library_for(a.category), f) for f in walk(d, s.ext_set)]
         limit_to = {a.uid for a in accs}
     else:
-        files = walk(root, s.ext_set)
+        items = [(r, f) for r in roots for f in walk(r, s.ext_set)]
         limit_to = None
+    files = [f for _, f in items]
+    root_of = dict((f, r) for r, f in items)
 
     by_video = {}
     for acc in cat.all():
         for vid in acc.videos:
             by_video.setdefault(vid, acc)
 
-    print(f"Scanning {len(files):,} file(s) in {root}" + (" (dry run)" if args.dry_run else "") + "\n")
+    print(f"Scanning {len(files):,} file(s) in:" + (" (dry run)" if args.dry_run else ""))
+    for r in roots:
+        print(f"  {r}")
+    print()
     progress = Progress(files)
     report = {k: [] for k in ("added", "already", "relinked", "changed", "duplicate",
                               "misplaced", "unknown", "no_id", "problems", "missing")}
@@ -93,16 +109,17 @@ def run(args, config):
             print(f"{tag} NO ID      {name}")
             report["no_id"].append(path)
             continue
-        acc = account_from_path(cat, path, root) or by_video.get(vid)
+        acc = account_from_path(cat, path, root_of[path]) or by_video.get(vid)
         if not acc:
             print(f"{tag} UNKNOWN    {name}")
             report["unknown"].append({"path": path, "video_id": vid})
             continue
         expected = naming.account_folder(s, acc)
         if os.path.abspath(os.path.dirname(path)) != os.path.abspath(expected):
-            print(f"{tag} MISPLACED  {name}  (belongs to @{acc.handle}: {expected})")
+            print(f"{tag} MISPLACED  {name}  (@{acc.handle}'s folder is {expected})")
             report["misplaced"].append({"path": path, "video_id": vid,
                                         "uploader_id": acc.uid, "should_be_in": expected})
+            seen.add((acc.uid, vid))  # it exists, just in the wrong place: not MISSING
             continue
 
         v = acc.video(vid)
@@ -185,6 +202,8 @@ def run(args, config):
     if report["unknown"]:
         print("\nUNKNOWN files: add their accounts (archiver.py tiktok add ID --category X), "
               "then scan again.")
+    if report["misplaced"]:
+        print("MISPLACED files: archiver.py tiktok move puts them where the settings say.")
     if report["missing"] and not args.forget_missing:
         print("MISSING files: scan --forget-missing clears them so download gets them again.")
     if args.dry_run:

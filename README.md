@@ -62,8 +62,11 @@ somewhere else? Add `--dumps /path/to/folder` (as many as you like).
 Videos that were deleted long ago stay in the catalog with the dates they
 were seen. Running it again only adds what's missing.
 
-Then point `library` at your old `tiktok_cache` in `mogul.local.toml` and
-run `archiver.py tiktok scan`.
+Have more than one old setup? Run it once for each `--from` folder; the
+second run adds to the first.
+
+Then point `library` (or `[tiktok.drives]`, below) at your old video
+folders in `mogul.local.toml` and run `archiver.py tiktok scan`.
 
 ## Starting with videos you already have (no old database)
 
@@ -74,6 +77,23 @@ run `archiver.py tiktok scan`.
    `archiver.py tiktok add --file accounts.txt --category comedy`
 3. `archiver.py tiktok scan` catalogs what's already on disk.
 4. Then the usual `update` → `download` → `validate`.
+
+## Different drives per category
+
+In `mogul.local.toml`:
+
+```toml
+[tiktok.drives]
+aigen = "/mnt/drive1/tiktok-archive"
+commentary = "/mnt/drive2/tiktok-archive"
+```
+
+Each account goes on the drive for its primary category; anything not
+listed uses `library`. To move a category to another drive later, change
+its line and run `archiver.py tiktok move` (try `--dry-run` first). If the
+old drive is no longer listed anywhere in the settings, tell move where to
+look: `move --from /mnt/drive2/tiktok-archive`. Moves between drives copy,
+check the copy matches, then remove the original. Nothing is overwritten.
 
 ## Actions
 
@@ -94,6 +114,7 @@ run `archiver.py tiktok scan`.
 | `scan` | Catalog files already in the library (`--forget-missing`) |
 | `validate` | Check files, repair audio, quarantine broken ones (`--list`, `--recheck`, `--no-repair`) |
 | `silent ID ...` | Mark videos as really silent (`--folder` takes IDs from filenames) |
+| `move` | Move account folders to where the settings say (`--from`, `--dry-run`) |
 | `import-old --from PATH` | Import the old scripts' accounts, listings and skips (`--dumps`, `--dry-run`) |
 
 ## Where things go

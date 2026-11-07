@@ -88,6 +88,7 @@ modules/tiktok/
   listing.py           merging yt-dlp listings: dates, kept metadata fields
   update.py            video lists into the catalog
   legacy.py            import-old: old accounts.db, flatdumps, skips
+  move.py              move account folders to where the settings say
   download.py          download + skipped
   scan.py              catalog files already on disk
   validate.py          validate + silent
@@ -99,9 +100,16 @@ modules/tiktok/
   `mogul_json/tiktok/<uploader_id>.json`. Saved after every
   account (update) or every video (download, scan, validate), written
   safely (temp file + rename) by `mogul_core/store.py`.
-- **No paths in the JSON.** A file's location = `library` (or
-  `quarantine` if `file.location` says so) + `folder_template` +
-  `file.filename`.
+- **No paths in the JSON.** A file's location = the account's library
+  (`[tiktok.drives]` entry for its primary category, else `library`), or
+  `quarantine` if `file.location` says so, + `folder_template` +
+  `file.filename`. So changing drives/templates needs no catalog edits,
+  just `move`.
+- **Drives per category** (decided 2026-11-07): `[tiktok.drives]` in
+  `mogul.local.toml`, `category = "/path"`, keyed by primary category.
+  Mavrick has two old drives (e.g. aigen on drive1, commentary on drive2)
+  and plans to move to a third drive later. Quarantine is still one
+  folder for all drives (could go per-drive later).
 - IDs (account and video) are **strings**: 19 digits is too big for
   JavaScript numbers.
 - Videos are never removed from the catalog. Missing from a listing →
@@ -209,6 +217,16 @@ modules/tiktok/
   plus `audio_fixed.jsonl`. Error flags are not carried over. Safe to
   rerun (tested: second run changes nothing). Dumps for accounts not in
   the DB are reported, not created. Then run scan for the files.
+- **move**: for each account, looks for its folder under every library
+  root (default + drives + `--from` paths, e.g. a drive removed from the
+  settings) with the current folder_template (plus `--old-template`), and
+  moves every file into the folder the settings point at now. Same
+  filesystem → rename; otherwise copy to `.part`, check size + xxh64,
+  rename, delete original. Never overwrites: DUPLICATE (same bytes) /
+  CONFLICT (differs) leave the original in place. Removes emptied
+  folders. scan reports files in the wrong place as MISPLACED (not
+  MISSING). `tag --primary` prints a move hint when the folder changes.
+  Tested across two filesystems (/dev/shm vs disk).
 - **silent**: marks videos `check.result = silent` and moves them back
   from quarantine. Replaces `mark_valid.py` and `validate.sh`.
 
@@ -227,8 +245,6 @@ TikTok yet.
   (batched, cached), then hand matched files to import.
 - **import**: move `<uid>_<handle>/` folders from an incoming folder into
   the library, adding the accounts. (scan already reads those folder names.)
-- **sort**: the old `sort_by_category.py` is now just a `folder_template`
-  change (`{category}/{uid19}`) plus a mover to put files where the new
-  template says. scan reports them as MISPLACED until then.
-- `--move` for scan to fix MISPLACED files.
+- (The old `sort_by_category.py` is covered: change folder_template or
+  [tiktok.drives], then `move`.)
 - **export**: accounts to CSV (JSON is already the backup).

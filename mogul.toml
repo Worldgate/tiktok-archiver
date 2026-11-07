@@ -40,6 +40,10 @@ hashes = ["blake3", "sha256"]
 # To point it at another drive, set it in mogul.local.toml.
 library = "mogul_library/tiktok"
 
+# Different drives per category: add a [tiktok.drives] section to
+# mogul.local.toml (see the example there). Categories not listed use
+# library. After changing it, run "archiver.py tiktok move".
+
 # Where validate moves files it couldn't repair. Nothing is ever deleted.
 quarantine = "mogul_quarantine/tiktok"
 

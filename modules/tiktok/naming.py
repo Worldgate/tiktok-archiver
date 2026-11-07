@@ -1,4 +1,5 @@
-"""Where each video lives: folder_template + filename_template."""
+"""Where each video lives: library (per category, see [tiktok.drives])
++ folder_template + filename_template."""
 
 import datetime
 import os
@@ -27,16 +28,17 @@ def upload_date(listing):
     return "0000", "00", "00"
 
 
-def account_folder(settings, account, base=None):
-    """Folder for an account inside the library (or quarantine)."""
+def account_folder(settings, account, base=None, template=None):
+    """Folder for an account inside its library (or `base`, e.g. quarantine).
+    `template` overrides folder_template (move uses it to find old layouts)."""
     tokens = {
         "uid": account.uid,
         "uid19": account.uid.zfill(19),
         "handle": safe(account.handle),
         "category": safe(account.category),
     }
-    rel = settings.folder_template.format(**tokens)
-    return os.path.join(base or settings.library_dir, rel)
+    rel = (template or settings.folder_template).format(**tokens)
+    return os.path.join(base or settings.library_for(account.category), rel)
 
 
 def video_filename(settings, vid, video, ext):
@@ -48,7 +50,7 @@ def video_filename(settings, vid, video, ext):
 def file_path(settings, account, video):
     """Where a recorded file should be right now (library or quarantine)."""
     f = video["file"]
-    base = settings.quarantine_dir if f.get("location") == "quarantine" else settings.library_dir
+    base = settings.quarantine_dir if f.get("location") == "quarantine" else None
     return os.path.join(account_folder(settings, account, base), f["filename"])
 
 

@@ -127,13 +127,19 @@ def tag(args, config, remove=False):
                 current.remove(t)
         elif t not in current:
             current.append(t)
+    moved_drive = False
     if not remove and args.primary:
+        before = s.library_for(acc.category)
         acc.info["category"] = tags[0]
+        moved_drive = s.library_for(acc.category) != before
     if acc.category not in current:
         current.insert(0, acc.category)
     acc.info["tags"] = sorted(set(current), key=lambda t: (t != acc.category, t))
     acc.save()
     print(f"{acc.label()}\n  primary : {acc.category}\n  tags    : {', '.join(acc.tags)}")
+    if moved_drive or ("{category}" in s.folder_template and getattr(args, "primary", False)):
+        print(f"  Its folder is now {naming.account_folder(s, acc)}\n"
+              f"  Run: archiver.py tiktok move --name {acc.uid}")
 
 
 # ─── list / info ────────────────────────────────────────────────────────

@@ -32,6 +32,7 @@ ACTIONS = {
     "scan": "Catalog videos already in the library (moves nothing)",
     "validate": "Check downloaded files; repair missing audio; quarantine broken ones",
     "silent": "Mark videos as really silent and bring them back from quarantine",
+    "move": "Move account folders to where the settings say (e.g. another drive)",
     # bringing in the old scripts' data
     "import-old": "Import accounts, old listings and skips from the old tiktok_metadata folder",
 }
@@ -65,6 +66,9 @@ def run(action, args, config):
     if action == "import-old":
         from . import legacy
         return legacy.run(args, config)
+    if action == "move":
+        from . import move
+        return move.run(args, config)
     raise SystemExit(f"tiktok has no action '{action}'. Actions: {', '.join(ACTIONS)}")
 
 
@@ -87,3 +91,6 @@ def add_arguments(action, parser):
     elif action == "import-old":
         from . import legacy
         legacy.add_arguments(parser)
+    elif action == "move":
+        from . import move
+        move.add_arguments(parser)
