@@ -22,6 +22,8 @@ Results per file:
 Then:
   MISSING    cataloged files that aren't on disk anymore
              (--forget-missing clears them so download fetches them again)
+  DISCARDED  files you deleted from a blocked account's folder: marked so
+             they're never downloaded again, even after unblocking
 """
 
 import os
@@ -32,6 +34,7 @@ from mogul_core.progress import Progress
 from . import naming
 from .common import add_filters, setup, write_report
 from .media import ProbeError, describe, unchanged
+from .ytdlp import DISCARDED
 
 
 def account_from_path(cat, path, root):
@@ -63,10 +66,12 @@ def run(args, config):
     if args.path:
         roots = [os.path.abspath(args.path)]
     else:
-        roots = s.library_roots  # the default library plus every [tiktok.drives] folder
-    missing_roots = [r for r in roots if not os.path.isdir(r)]
-    for r in missing_roots:
-        print(f"Folder not found (skipped): {r}")
+        # the default library, every [tiktok.drives] folder, and the blocked folders
+        roots = list(s.library_roots) + [r for r in s.blocked_roots if r not in s.library_roots]
+    blocked_roots = set(s.blocked_roots)
+    for r in roots:
+        if not os.path.isdir(r) and r not in blocked_roots:  # no blocked folder yet is fine
+            print(f"Folder not found (skipped): {r}")
     roots = [r for r in roots if os.path.isdir(r)]
     if not roots:
         return
@@ -79,7 +84,8 @@ def run(args, config):
         for a in accs:
             d = naming.account_folder(s, a)
             if os.path.isdir(d):
-                items += [(s.library_for(a.category), f) for f in walk(d, s.ext_set)]
+                base = s.blocked_for(a.category) if a.blocked else s.library_for(a.category)
+                items += [(base, f) for f in walk(d, s.ext_set)]
         limit_to = {a.uid for a in accs}
     else:
         items = [(r, f) for r in roots for f in walk(r, s.ext_set)]
@@ -98,7 +104,8 @@ def run(args, config):
     print()
     progress = Progress(files)
     report = {k: [] for k in ("added", "already", "relinked", "changed", "duplicate",
-                              "misplaced", "unknown", "no_id", "problems", "missing")}
+                              "misplaced", "unknown", "no_id", "problems", "missing",
+                              "discarded")}
     seen = set()
 
     for n, path in enumerate(files, 1):
@@ -182,6 +189,17 @@ def run(args, config):
                     continue
                 if os.path.exists(naming.file_path(s, acc, v)):
                     continue
+                if acc.blocked:
+                    # deleted by hand from a blocked account's folder: never fetch it again
+                    print(f"DISCARDED  @{acc.handle}  {v['file']['filename']}")
+                    report["discarded"].append({"uploader_id": acc.uid, "video_id": vid,
+                                                "filename": v["file"]["filename"]})
+                    v.pop("file", None)
+                    st = v.setdefault("status", {})
+                    st.pop("check", None)
+                    st["skip"] = {"reason": DISCARDED, "permanent": True, "date": store.now()}
+                    changed = True
+                    continue
                 print(f"MISSING    @{acc.handle}  {v['file']['filename']}")
                 report["missing"].append({"uploader_id": acc.uid, "video_id": vid,
                                           "filename": v["file"]["filename"]})
@@ -195,7 +213,7 @@ def run(args, config):
 
     print(f"\n{'─' * 50}")
     for key in ("added", "already", "relinked", "changed", "duplicate", "misplaced",
-                "unknown", "no_id", "problems", "missing"):
+                "unknown", "no_id", "problems", "missing", "discarded"):
         if report[key]:
             print(f"{key.replace('_', ' ').title():<11}: {len(report[key]):,}")
     print(f"Time       : {progress.elapsed()}")

@@ -131,7 +131,8 @@ modules/tiktok/
               "handles": [{"handle": "alpha", "first_seen": "..."}, ...],
               "display_name": "...", "channel_url": "...",
               "category": "comedy", "tags": ["comedy", "yeti"],
-              "status": "active", "notes": null, "added": "..."},
+              "status": "active", "notes": null, "added": "...",
+              "blocked": {"date": "...", "reason": "..."}},
   "state": {"last_checked": "...", "last_updated": "...", "last_downloaded": "...",
             "last_duration": 12.3, "listed_count": 5, "stale_count": 0,
             "error_count": 0, "error_last": "...", "flagged": true,
@@ -217,7 +218,7 @@ modules/tiktok/
   mtime), merged oldest first. `validate/<uid>.db`: skipped_videos →
   status.skip, valid_silent → check silent, audio_fixed → status.repaired;
   plus `audio_fixed.jsonl`. Error flags are not carried over. Old status
-  `blocked` (old `block` marked the account too) → `removed`.
+  `blocked` → removed + blocked mark (see block).
   `--category` (tags from the old DB, comma = all) / `--name` import
   in chunks; the block list only comes over on an unfiltered run. Safe to
   rerun (tested: second run changes nothing). Dumps for accounts not in
@@ -233,6 +234,19 @@ modules/tiktok/
   MISSING). `tag --primary` prints a move hint when the folder changes.
   Tested across two filesystems (/dev/shm vs disk). Finds folders named
   with the plain ID or the zero-padded one, whichever the template uses.
+- **block** (decided 2026-11-07, Mavrick's whittling workflow): block
+  list + `account.blocked = {date, reason}` + status removed + moves the
+  account folder to the blocked folder. `blocked_folder` (default
+  `tiktok-blocked`) = sibling of the account's library folder (same drive,
+  rename), or an absolute path. Blocked accounts' home folder IS the
+  blocked folder (naming.account_folder), so scan/move/file_path just
+  work. Files he deletes there → scan marks DISCARDED (file record
+  dropped, `status.skip` reason `discarded — you deleted it`, permanent;
+  `skipped --retry` only brings those back with `--reason discarded`).
+  validate skips blocked accounts unless `--name`. **unblock**: off the
+  list, status active, moves files back. import-old marks old
+  `blocked` accounts blocked, so `move` puts them straight into the
+  blocked folder during migration. `--keep-files` blocks without moving.
 - **silent**: marks videos `check.result = silent` and moves them back
   from quarantine. Replaces `mark_valid.py` and `validate.sh`.
 

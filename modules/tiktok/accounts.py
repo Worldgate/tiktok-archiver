@@ -1,6 +1,7 @@
 """Account actions: add, tag, untag, list, info, check, remove, block,
 unblock, flagged, unflag, timeout."""
 
+import os
 import sys
 
 from mogul_core import store
@@ -8,7 +9,7 @@ from mogul_core import store
 from . import naming
 from .catalog import clean_name, is_numeric_id, split_tags
 from .common import pause, setup, write_report
-from .ytdlp import Ytdlp
+from .ytdlp import DISCARDED, Ytdlp
 
 
 def _need(acc, name):
@@ -158,7 +159,7 @@ def list_accounts(args, config):
     print(f"{'Handle':<28} {'ID':<20} {'Category':<12} {'Listed':>7} {'Files':>6}  Status")
     print("─" * 92)
     for a in accs:
-        flags = [a.status]
+        flags = ["blocked" if a.blocked else a.status]
         if a.flagged:
             flags.append("FLAGGED")
         stale = a.state.get("stale_count", 0)
@@ -184,7 +185,10 @@ def info(args, config):
     unchecked = sum(1 for v in files if not (v.get("status") or {}).get("check"))
     print(acc.label())
     print(f"  display name : {i.get('display_name') or '—'}")
-    print(f"  status       : {acc.status}" + ("  FLAGGED" if acc.flagged else ""))
+    print(f"  status       : {acc.status}" + ("  FLAGGED" if acc.flagged else "")
+          + (f"  BLOCKED {acc.info['blocked'].get('date', '')[:10]}"
+             + (f" ({acc.info['blocked']['reason']})" if acc.info['blocked'].get('reason') else "")
+             if acc.blocked else ""))
     print(f"  category     : {acc.category}   tags: {', '.join(acc.tags) or '—'}")
     past = [h["handle"] for h in i.get("handles", []) if h["handle"].lower() != acc.handle.lower()]
     if past:
@@ -278,34 +282,83 @@ def remove(args, config):
 
 
 def block(args, config):
+    """Block list + stop archiving + move the account's folder to the blocked
+    folder (same drive), so you can pick out what to keep by hand."""
+    from .move import relocate_folder
     s, cat = setup(config)
     data = cat.blocked()
-    if cat.is_blocked(args.name):
-        print(f"ALREADY BLOCKED: {args.name}")
-        return
     acc = cat.find(args.name)
-    entry = {"handle": acc.handle if acc else (None if is_numeric_id(args.name) else clean_name(args.name)),
-             "uploader_id": acc.uid if acc else (clean_name(args.name) if is_numeric_id(args.name) else None),
-             "reason": args.reason, "blocked": store.now()}
-    data["blocked"].append(entry)
-    cat.save_blocked(data)
-    print(f"BLOCKED: {args.name}" + (f" ({args.reason})" if args.reason else ""))
-    if acc and acc.status != "removed":
-        print(f"  It's still in the catalog as {acc.label()}; use remove to stop archiving it.")
+    when = store.now()
+    if not cat.is_blocked(args.name) and not (acc and cat.is_blocked(acc.uid)):
+        data["blocked"].append({
+            "handle": acc.handle if acc else (None if is_numeric_id(args.name) else clean_name(args.name)),
+            "uploader_id": acc.uid if acc else (clean_name(args.name) if is_numeric_id(args.name) else None),
+            "reason": args.reason, "blocked": when})
+        cat.save_blocked(data)
+        print(f"BLOCKED: {args.name}" + (f" ({args.reason})" if args.reason else "")
+              + (" — it can't be added again unless unblocked" if not acc else ""))
+    elif not acc or acc.blocked:
+        print(f"ALREADY BLOCKED: {args.name}")
+    if not acc:
+        return
+
+    library_folder = naming.account_folder(s, acc, base=s.library_for(acc.category))
+    if not acc.blocked:
+        acc.info["blocked"] = {"date": when, "reason": args.reason}
+        acc.info["status"] = "removed"
+        acc.save()
+        print(f"  {acc.label()} is no longer archived (update and download skip it)")
+    blocked_folder = naming.account_folder(s, acc)
+    if args.keep_files:
+        print(f"  Files left where they are (--keep-files): {library_folder}")
+        return
+    if not os.path.isdir(library_folder):
+        print(f"  No files in the library to move. Blocked folder: {blocked_folder}")
+        return
+    moved, left = relocate_folder(library_folder, blocked_folder)
+    print(f"  Moved {len(moved):,} file(s) to {blocked_folder}")
+    if left:
+        print(f"  {len(left):,} file(s) left in {library_folder} "
+              "(same name already in the blocked folder, or couldn't be moved)")
+    print("  Delete what you don't want from there; the next scan marks those videos as "
+          "discarded so they're never downloaded again.")
 
 
 def unblock(args, config):
+    """Take an account off the block list; if it was archived, move what's left
+    of its folder back to the library and start archiving it again."""
+    from .move import relocate_folder
     s, cat = setup(config)
     data = cat.blocked()
-    key = clean_name(args.name)
+    acc = cat.find(args.name)
+    keys = {clean_name(args.name)} | ({acc.uid, clean_name(acc.handle)} if acc else set())
     before = len(data["blocked"])
     data["blocked"] = [b for b in data["blocked"]
-                       if key not in (clean_name(b.get("handle") or ""), b.get("uploader_id"))]
-    if len(data["blocked"]) == before:
+                       if not keys & {clean_name(b.get("handle") or ""), b.get("uploader_id")}]
+    listed = len(data["blocked"]) != before
+    if listed:
+        cat.save_blocked(data)
+    if not listed and not (acc and acc.blocked):
         print(f"NOT BLOCKED: {args.name}")
         return
-    cat.save_blocked(data)
     print(f"UNBLOCKED: {args.name}")
+    if not acc or not acc.blocked:
+        return
+    blocked_folder = naming.account_folder(s, acc)
+    acc.info.pop("blocked", None)
+    acc.info["status"] = "active"
+    library_folder = naming.account_folder(s, acc)
+    moved, left = relocate_folder(blocked_folder, library_folder) \
+        if os.path.isdir(blocked_folder) else ([], [])
+    acc.save()
+    print(f"  {acc.label()} is archived again; moved {len(moved):,} file(s) back to "
+          f"{library_folder}")
+    if left:
+        print(f"  {len(left):,} file(s) left in {blocked_folder} (name already in the library)")
+    gone = sum(1 for v in acc.videos.values()
+               if ((v.get("status") or {}).get("skip") or {}).get("reason") == DISCARDED)
+    if gone:
+        print(f"  {gone:,} video(s) you discarded stay skipped.")
 
 
 # ─── flags ──────────────────────────────────────────────────────────────
@@ -417,7 +470,9 @@ def add_arguments(action, p):
         p.add_argument("--undo", action="store_true", help="make a removed account active again")
     elif action == "block":
         p.add_argument("name", help="@handle or numeric ID")
-        p.add_argument("--reason", help="why (shown if someone tries to add it)")
+        p.add_argument("--reason", help="why (kept with the account and the block list)")
+        p.add_argument("--keep-files", action="store_true",
+                       help="block it but leave its files in the library")
     elif action == "unblock":
         p.add_argument("name", help="@handle or numeric ID")
     elif action == "unflag":

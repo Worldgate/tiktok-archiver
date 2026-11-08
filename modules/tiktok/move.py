@@ -2,7 +2,7 @@
 
 Use it after changing [tiktok.drives] or library (moving categories to
 another drive), after changing an account's primary category, or after
-changing folder_template.
+changing folder_template. Blocked accounts go to the blocked folder.
 
 For each account it looks for the account's folder (plain or zero-padded
 ID, either works) in every library
@@ -87,13 +87,34 @@ def remove_empty(folder, stop_at):
         folder = os.path.dirname(folder)
 
 
+def relocate_folder(src_dir, dst_dir):
+    """Move every file from one account folder to another (used by block and
+    unblock). Never overwrites. Returns (moved, left) lists of filenames."""
+    moved, left = [], []
+    for src in files_in(src_dir):
+        dst = os.path.join(dst_dir, os.path.basename(src))
+        if os.path.exists(dst):
+            left.append(os.path.basename(src))
+            continue
+        try:
+            move_file(src, dst)
+            moved.append(os.path.basename(src))
+        except OSError:
+            left.append(os.path.basename(src))
+    try:
+        os.rmdir(src_dir)  # only if it's empty now
+    except OSError:
+        pass
+    return moved, left
+
+
 def run(args, config):
     s, cat = setup(config)
     accs = cat.select(name=args.name, category=args.category, statuses=None)
     if not accs:
         print("No accounts match.")
         return
-    roots = list(s.library_roots)
+    roots = list(s.library_roots) + [r for r in s.blocked_roots if r not in s.library_roots]
     for extra in args.source or []:
         extra = os.path.abspath(os.path.expanduser(extra))
         if not os.path.isdir(extra):

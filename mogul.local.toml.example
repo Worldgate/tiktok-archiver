@@ -21,6 +21,9 @@
 # them somewhere else.
 # cookies = "/home/you/tiktok_metadata/cookies.txt"
 
+# Blocked accounts' folders go to "tiktok-blocked" next to each library
+# folder by default (set blocked_folder in mogul.toml to change it).
+
 # Different drives per category (primary category of each account).
 # Categories not listed here use library above. After changing these,
 # run "mogul.py tiktok move" to carry the files over.

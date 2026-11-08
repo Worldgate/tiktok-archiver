@@ -25,6 +25,7 @@ DEFAULTS = {
     "dormant_peek": 5,
     "dormant_threshold": 3,
     "rename_audio_only": True,
+    "blocked_folder": "tiktok-blocked",
 }
 
 
@@ -80,6 +81,26 @@ class Settings:
     def library_for(self, category):
         """Library folder for an account's primary category."""
         return self.drives.get((category or "").lower().strip()) or self.library_dir
+
+    def blocked_for(self, category):
+        """Where blocked accounts' folders go. A plain name (the default,
+        "tiktok-blocked") means a folder of that name next to the account's
+        library, so it's on the same drive and blocking is a quick rename.
+        An absolute path puts every blocked account in one place."""
+        name = self.data.get("blocked_folder") or "tiktok-blocked"
+        if os.path.isabs(os.path.expanduser(name)):
+            return self.config.resolve(name)
+        library = self.library_for(category).rstrip(os.sep)
+        return os.path.join(os.path.dirname(library), name)
+
+    @property
+    def blocked_roots(self):
+        out = []
+        for cat in [None] + list(self.drives):
+            path = self.blocked_for(cat)
+            if path not in out:
+                out.append(path)
+        return out
 
     @property
     def library_roots(self):

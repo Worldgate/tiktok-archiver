@@ -22,7 +22,7 @@ from mogul_core import store
 from . import naming
 from .common import add_filters, elapsed, pause, setup, write_report, ytdlp_escape
 from .media import ProbeError, describe
-from .ytdlp import PERMANENT, Ytdlp, video_url
+from .ytdlp import DISCARDED, PERMANENT, Ytdlp, video_url
 
 
 def pending(acc):
@@ -225,6 +225,9 @@ def skipped(args, config):
     cleared, kept = 0, 0
     touched = set()
     for reason, items in groups.items():
+        if reason == DISCARDED and "discard" not in want:
+            kept += len(items)  # your own deletions: only with --reason discarded
+            continue
         if reason in PERMANENT and not args.all_reasons:
             kept += len(items)
             continue
@@ -238,8 +241,9 @@ def skipped(args, config):
     verb = "Would clear" if args.dry_run else "Cleared"
     print(f"{verb} {cleared} skip(s); download will try them again.")
     if kept:
-        print(f"Left {kept} permanent ones alone (deleted, private, photo posts...). "
-              "Add --all-reasons to retry those too.")
+        print(f"Left {kept} permanent ones alone (deleted, private, photo posts, ones you "
+              "discarded). --all-reasons retries the TikTok ones; --reason discarded "
+              "brings back your own discards.")
 
 
 def add_arguments(action, p):

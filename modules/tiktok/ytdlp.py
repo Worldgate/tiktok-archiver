@@ -183,7 +183,11 @@ def classify_listing_error(returncode, text):
 
 # Video-level reasons that never change between runs (deleted, taken down,
 # not a video). skipped --retry leaves these alone unless --all-reasons.
+# Videos you deleted from a blocked account's folder (set by scan).
+DISCARDED = "discarded — you deleted it"
+
 PERMANENT = {
+    DISCARDED,
     "photo post — not a video",
     "404 — video deleted",
     "removed — copyright",

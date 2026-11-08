@@ -108,6 +108,22 @@ old drive is no longer listed anywhere in the settings, tell move where to
 look: `move --from /mnt/drive2/tiktok-archive`. Moves between drives copy,
 check the copy matches, then remove the original. Nothing is overwritten.
 
+## Blocking accounts
+
+When an account turns into product ads (or anything you don't want):
+
+```bash
+./mogul.py tiktok block @someone --reason "selling sweaters now"
+```
+
+It goes on the block list, stops being archived, and its whole folder
+moves to `tiktok-blocked` next to its library folder (same drive, so it's
+instant). Delete whatever you don't want to keep from there; the next
+`scan` marks those videos as discarded, so they're never downloaded
+again. `unblock` moves what's left back and starts archiving it again.
+Accounts the old scripts had blocked land in the blocked folder when you
+migrate with `move`.
+
 ## Actions
 
 | Action | What it does |
@@ -118,7 +134,7 @@ check the copy matches, then remove the original. Nothing is overwritten.
 | `tag` / `untag --name @a --tags x,y` | Change tags (`tag --primary` changes the main category) |
 | `check` | Quick "still alive?" for every account; picks up handle changes |
 | `remove @a` | Stop archiving (keeps files and catalog; `--undo` to bring it back) |
-| `block @a --reason ...` / `unblock` | Block list for `add` |
+| `block @a --reason ...` / `unblock` | Block an account: stop archiving, move its folder to the blocked folder (`--keep-files`) |
 | `flagged` / `unflag` | Accounts paused after repeated errors |
 | `timeout --name @a --add 60` | Longer timeout for slow accounts (`--set`, `--clear`, `--list`) |
 | `update` | Fetch video lists (`--new`, `--last 7`, `--resume`, `--full`) |

@@ -164,8 +164,9 @@ def merge_account(cat, row, tags, when_now):
     tags = [category] + [t for t in sorted(set(tags)) if t != category]
     added = iso(get("added_at")) or when_now
     status = (get("status") or "active").lower()
-    if status == "blocked":
-        status = "removed"  # old block also marked the account; here that's "removed"
+    old_blocked = status == "blocked"
+    if old_blocked:
+        status = "removed"  # blocked = removed + a "blocked" mark (see below)
     elif status not in ("active", "empty", "removed"):
         status = "active"
     acc = cat.by_uid(uid)
@@ -191,6 +192,9 @@ def merge_account(cat, row, tags, when_now):
         history = acc.info.setdefault("handles", [])
         if old and not old.isdigit() and not any(h["handle"].lower() == old.lower() for h in history):
             history.insert(0, {"handle": old, "first_seen": added})  # history only
+    if old_blocked and not acc.info.get("blocked"):
+        acc.info["blocked"] = {"date": when_now, "reason": "blocked in the old scripts"}
+        acc.info["status"] = "removed"
     if get("timeout_override") and not acc.state.get("timeout_override"):
         acc.state["timeout_override"] = get("timeout_override")
     if get("last_duration") and not acc.state.get("last_duration"):

@@ -1,5 +1,6 @@
-"""Where each video lives: library (per category, see [tiktok.drives])
-+ folder_template + filename_template."""
+"""Where each video lives: library (per category, see [tiktok.drives]),
+or the blocked folder for blocked accounts, + folder_template +
+filename_template."""
 
 import datetime
 import os
@@ -38,7 +39,10 @@ def account_folder(settings, account, base=None, template=None):
         "category": safe(account.category),
     }
     rel = (template or settings.folder_template).format(**tokens)
-    return os.path.join(base or settings.library_for(account.category), rel)
+    if not base:
+        base = (settings.blocked_for(account.category) if getattr(account, "blocked", False)
+                else settings.library_for(account.category))
+    return os.path.join(base, rel)
 
 
 def video_filename(settings, vid, video, ext):

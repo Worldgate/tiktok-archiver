@@ -80,6 +80,11 @@ class Account:
         return self.info.get("tags", [])
 
     @property
+    def blocked(self):
+        """Blocked: not archived, and its folder lives in the blocked folder."""
+        return bool(self.info.get("blocked"))
+
+    @property
     def flagged(self):
         return bool(self.state.get("flagged"))
 

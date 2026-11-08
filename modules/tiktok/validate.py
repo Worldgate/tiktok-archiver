@@ -122,6 +122,8 @@ def run(args, config):
     print(f"\nValidating {len(accs)} account(s)" + (" (dry run)" if args.dry_run else "") + "...\n")
 
     for i, acc in enumerate(accs, 1):
+        if acc.blocked and not args.name:
+            continue  # blocked: you're sorting those by hand
         files = [(vid, v) for vid, v in acc.files() if v["file"].get("location") != "quarantine"]
         if not files:
             continue

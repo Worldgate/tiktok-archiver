@@ -57,6 +57,13 @@ state = ""
 reports = ""
 cookies = ""
 
+# Where "block" moves a blocked account's folder, so you can pick out
+# what to keep. A plain name = a folder with that name next to each
+# library folder (same drive, so it's a quick rename):
+#   /mnt/drive1/tiktok-archive  →  /mnt/drive1/tiktok-blocked
+# Or an absolute path to keep every blocked account in one place.
+blocked_folder = "tiktok-blocked"
+
 # --- Naming ---
 # Folder inside the library for each account. Tokens:
 #   {uid}       numeric account ID          7399126950817711122
