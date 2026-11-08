@@ -163,13 +163,18 @@ def merge_account(cat, row, tags, when_now):
     category = (get("category") or "general").lower().strip()
     tags = [category] + [t for t in sorted(set(tags)) if t != category]
     added = iso(get("added_at")) or when_now
+    status = (get("status") or "active").lower()
+    if status == "blocked":
+        status = "removed"  # old block also marked the account; here that's "removed"
+    elif status not in ("active", "empty", "removed"):
+        status = "active"
     acc = cat.by_uid(uid)
     created = acc is None
     if created:
         acc = cat.create(uid, get("handle") or uid, added,
                          display_name=get("display_name"), channel_url=get("channel_url"),
                          category=category, tags=tags,
-                         status=get("status") or "active", notes=get("notes"))
+                         status=status, notes=get("notes"))
         acc.info["added"] = added
         for h in acc.info.get("handles", []):
             h["first_seen"] = added

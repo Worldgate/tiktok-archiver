@@ -216,7 +216,8 @@ modules/tiktok/
   `--dumps` folders (uid from content, date from a stamp in the name or
   mtime), merged oldest first. `validate/<uid>.db`: skipped_videos →
   status.skip, valid_silent → check silent, audio_fixed → status.repaired;
-  plus `audio_fixed.jsonl`. Error flags are not carried over.
+  plus `audio_fixed.jsonl`. Error flags are not carried over. Old status
+  `blocked` (old `block` marked the account too) → `removed`.
   `--category` (tags from the old DB, comma = all) / `--name` import
   in chunks; the block list only comes over on an unfiltered run. Safe to
   rerun (tested: second run changes nothing). Dumps for accounts not in
@@ -242,6 +243,12 @@ drive) → `scan --category X` → later update/download/validate. He likes
 seeing which videos people delete (drama vs. dropped ads), which is why
 all old dumps go in. Idea, not built: a view listing deleted videos
 (`not_listed_since`) per account or across all.
+
+Mavrick's old list (2026-11-07): 860 accounts, ~790 of them aigen, plus
+small categories (animation, archive, comedy, commentary, construction,
+cooking, cosplay, general, horror, maga, seasonal, trucking, voiceactor,
+vrchat). Some old-style short account IDs (`29204145`, `8321177`,
+`1303797`, `5550571`, 18-digit ones): folders zero-pad to 19, tested.
 
 ## Testing without TikTok
 
