@@ -111,6 +111,39 @@ def relocate_folder(src_dir, dst_dir):
     return moved, left
 
 
+def unknown_incoming(s, cat):
+    """Folders in any drive's incoming folder that no cataloged account owns."""
+    known = {a.uid for a in cat.all()}
+    out = []
+    for root in s.incoming_roots:
+        try:
+            names = sorted(os.listdir(root))
+        except OSError:
+            continue
+        for name in names:
+            path = os.path.join(root, name)
+            if not os.path.isdir(path) or name.startswith("."):
+                continue
+            uid = name.split("_", 1)[0].lstrip("0") or "0"
+            if uid.isdigit() and uid in known:
+                continue
+            if files_in(path):
+                out.append(path)
+    return out
+
+
+def show_unknown(paths):
+    if not paths:
+        return
+    print(f"\n{len(paths):,} incoming folder(s) belong to accounts not in the catalog "
+          "(left alone):")
+    for p in paths[:20]:
+        print(f"  {p}")
+    if len(paths) > 20:
+        print(f"  ... and {len(paths) - 20:,} more (all listed in the report)")
+    print("Add those accounts (import-old or add), then run move again.")
+
+
 def run(args, config):
     s, cat = setup(config)
     accs = cat.select(name=args.name, category=args.category, statuses=None)
@@ -155,10 +188,12 @@ def run(args, config):
             unique.append(item)
     plan = unique
 
+    leftovers = unknown_incoming(s, cat)
     if not plan:
         print("Everything is already where the settings say. Nothing to move.\n"
               "If files are on a drive you've taken out of the settings, point at it: "
               "move --from /that/drive/folder")
+        show_unknown(leftovers)
         return
     by_acc = {}
     for acc, src, dst, _ in plan:
@@ -206,6 +241,8 @@ def run(args, config):
     if report["errors"]:
         print(f"Errors     : {len(report['errors']):,}")
     print(f"Time       : {progress.elapsed()}")
+    show_unknown(leftovers)
+    report["incoming_not_in_catalog"] = leftovers
     write_report(s, "move", report)
 
 
