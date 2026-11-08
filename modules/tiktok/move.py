@@ -4,7 +4,8 @@ Use it after changing [tiktok.drives] or library (moving categories to
 another drive), after changing an account's primary category, or after
 changing folder_template.
 
-For each account it looks for the account's folder in every library
+For each account it looks for the account's folder (plain or zero-padded
+ID, either works) in every library
 folder (the default plus every drive, plus any --from folders you give,
 e.g. a drive you've already taken out of the settings) and moves the
 files into the folder the settings point at now.
@@ -100,6 +101,13 @@ def run(args, config):
         if extra not in roots:
             roots.append(extra)
     templates = [s.folder_template] + ([args.old_template] if args.old_template else [])
+    # Folders named with the plain ID or the zero-padded one both count
+    # (old Musical.ly-era IDs like 29204145 are shorter than 19 digits).
+    for tpl in list(templates):
+        for a, b in (("{uid19}", "{uid}"), ("{uid}", "{uid19}")):
+            alt = tpl.replace(a, b)
+            if a in tpl and alt not in templates:
+                templates.append(alt)
 
     plan = []  # (account, src, dst, root)
     for acc in accs:

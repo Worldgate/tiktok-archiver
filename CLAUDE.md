@@ -231,7 +231,8 @@ modules/tiktok/
   CONFLICT (differs) leave the original in place. Removes emptied
   folders. scan reports files in the wrong place as MISPLACED (not
   MISSING). `tag --primary` prints a move hint when the folder changes.
-  Tested across two filesystems (/dev/shm vs disk).
+  Tested across two filesystems (/dev/shm vs disk). Finds folders named
+  with the plain ID or the zero-padded one, whichever the template uses.
 - **silent**: marks videos `check.result = silent` and moves them back
   from quarantine. Replaces `mark_valid.py` and `validate.sh`.
 
@@ -243,6 +244,13 @@ drive) → `scan --category X` → later update/download/validate. He likes
 seeing which videos people delete (drama vs. dropped ads), which is why
 all old dumps go in. Idea, not built: a view listing deleted videos
 (`not_listed_since`) per account or across all.
+
+Migration layout (2026-11-07): each drive gets `mogul_incoming/<account id>/`
+with that account's files (8 TB wasn't enough, so accounts are split
+across drives). Step 3 is `move --category X --from <drive1>/mogul_incoming
+--from <drive2>/mogul_incoming ...`. One-time migration, not routine.
+He "whittles": when an account turns into product ads he blocks it and
+keeps only the relevant videos (so removed accounts keep partial files).
 
 Mavrick's old list (2026-11-07): 860 accounts, ~790 of them aigen, plus
 small categories (animation, archive, comedy, commentary, construction,
