@@ -225,10 +225,11 @@ def skipped(args, config):
     cleared, kept = 0, 0
     touched = set()
     for reason, items in groups.items():
-        if reason == DISCARDED and "discard" not in want:
-            kept += len(items)  # your own deletions: only with --reason discarded
-            continue
-        if reason in PERMANENT and not args.all_reasons:
+        if reason == DISCARDED:
+            if "discard" not in want:
+                kept += len(items)  # your own deletions: only with --reason discarded
+                continue
+        elif reason in PERMANENT and not args.all_reasons:
             kept += len(items)
             continue
         for acc, vid, v in items:
