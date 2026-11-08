@@ -101,7 +101,8 @@ aigen = "/mnt/drive1/tiktok-archive"
 commentary = "/mnt/drive2/tiktok-archive"
 ```
 
-Each account goes on the drive for its primary category; anything not
+Check it took with `./mogul.py tiktok settings`. Each account goes on the
+drive for its primary category; anything not
 listed uses `library`. To move a category to another drive later, change
 its line and run `mogul.py tiktok move` (try `--dry-run` first). If the
 old drive is no longer listed anywhere in the settings, tell move where to
@@ -143,6 +144,7 @@ migrate with `move`.
 | `scan` | Catalog files already in the library (`--forget-missing`) |
 | `validate` | Check files, repair audio, quarantine broken ones (`--list`, `--recheck`, `--no-repair`) |
 | `silent ID ...` | Mark videos as really silent (`--folder` takes IDs from filenames) |
+| `settings` | Show which settings files were read and where each category's files go (`--name`) |
 | `move` | Move account folders to where the settings say (`--from`, `--dry-run`) |
 | `import-old --from PATH` | Import the old scripts' accounts, listings and skips (`--category`, `--dumps`, `--dry-run`) |
 

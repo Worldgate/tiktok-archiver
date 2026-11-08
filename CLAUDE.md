@@ -91,6 +91,7 @@ modules/tiktok/
   update.py            video lists into the catalog
   legacy.py            import-old: old accounts.db, flatdumps, skips
   move.py              move account folders to where the settings say
+  showsettings.py      settings: which files were read, where each category goes
   download.py          download + skipped
   scan.py              catalog files already on disk
   validate.py          validate + silent
@@ -247,6 +248,11 @@ modules/tiktok/
   list, status active, moves files back. import-old marks old
   `blocked` accounts blocked, so `move` puts them straight into the
   blocked folder during migration. `--keep-files` blocks without moving.
+- **settings**: prints the mogul.toml / mogul.local.toml paths (or NOT
+  FOUND), every folder, the drives table, where each category goes, and
+  `--name` one account's folder. Warns when drive-looking keys sit under
+  `[tiktok]` instead of `[tiktok.drives]`. Added after Mavrick's first
+  real `add` put the folder in the default library instead of his drive.
 - **silent**: marks videos `check.result = silent` and moves them back
   from quarantine. Replaces `mark_valid.py` and `validate.sh`.
 
