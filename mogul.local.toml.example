@@ -13,21 +13,21 @@
 # userdata = "/home/you/tiktok-archiver/mogul_userdata"
 
 [tiktok]
-# Point this at your existing video folders (the old tiktok_cache),
-# then run "mogul.py tiktok scan" to catalog what's already there.
-# library = "/mnt/STORAGE1/tiktok_cache"
-# quarantine = "/mnt/STORAGE1/tiktok_quarantine"
-# Cookies default to mogul_userdata/tiktok/cookies.txt; only set this to keep
-# them somewhere else.
+# Base folder for every category NOT listed under [tiktok.drives] below.
+# Each base holds mogul_library/, mogul_incoming/, mogul_blocked/ and
+# mogul_quarantine/ (each with a tiktok/ folder inside).
+# base = "/mnt/STORAGE1/tiktok-archiver"
+
+# Cookies default to mogul_userdata/tiktok/cookies.txt; only set this to
+# keep them somewhere else.
 # cookies = "/home/you/tiktok_metadata/cookies.txt"
 
-# Blocked accounts' folders go to "tiktok-blocked" next to each library
-# folder by default (set blocked_folder in mogul.toml to change it).
-
-# Different drives per category (primary category of each account).
-# Categories not listed here use library above. After changing these,
-# run "mogul.py tiktok move" to carry the files over.
+# Base folder per category (the account's primary category). Several
+# categories can share a base. Everything after this header belongs to it,
+# so keep other [tiktok] settings ABOVE it.
+# After changing these, run "mogul.py tiktok move" to carry files over,
+# and "mogul.py tiktok settings" to check where everything goes.
 # [tiktok.drives]
-# aigen = "/mnt/drive1/tiktok-archive"
-# commentary = "/mnt/drive2/tiktok-archive"
-# horror = "/mnt/drive2/tiktok-archive"
+# aigen = "/mnt/STORAGE2/tiktok-archiver"
+# horror = "/mnt/STORAGE2/tiktok-archiver"
+# commentary = "/mnt/STORAGE1/tiktok-archiver"

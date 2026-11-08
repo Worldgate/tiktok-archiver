@@ -36,16 +36,23 @@ hashes = ["blake3", "sha256"]
 
 [tiktok]
 # --- Folders ---
-# Where videos live. One folder per account (see folder_template).
-# To point it at another drive, set it in mogul.local.toml.
-library = "mogul_library/tiktok"
+# Videos live under a "base" folder with the usual MOGUL folders inside:
+#   <base>/mogul_library/tiktok/<account id>/      the archive
+#   <base>/mogul_incoming/tiktok/<account id>/     files waiting to be moved in
+#   <base>/mogul_blocked/tiktok/<account id>/      blocked accounts, to hand-sort
+#   <base>/mogul_quarantine/tiktok/<account id>/   files validate couldn't fix
+# Different bases (drives) per category go in [tiktok.drives] in
+# mogul.local.toml (see the example there). "base" is for every category
+# not listed there; "" = the folder this file is in.
+# After changing either, run "mogul.py tiktok move".
+base = ""
 
-# Different drives per category: add a [tiktok.drives] section to
-# mogul.local.toml (see the example there). Categories not listed use
-# library. After changing it, run "mogul.py tiktok move".
-
-# Where validate moves files it couldn't repair. Nothing is ever deleted.
-quarantine = "mogul_quarantine/tiktok"
+# The folders inside each base. A plain path is inside the base; an
+# absolute path means one folder shared by every drive.
+library_folder = "mogul_library/tiktok"
+incoming_folder = "mogul_incoming/tiktok"
+blocked_folder = "mogul_blocked/tiktok"
+quarantine_folder = "mogul_quarantine/tiktok"
 
 # These three default to mogul_userdata/tiktok/ (leave them "" for that).
 # Only set them to put something elsewhere.
@@ -56,13 +63,6 @@ quarantine = "mogul_quarantine/tiktok"
 state = ""
 reports = ""
 cookies = ""
-
-# Where "block" moves a blocked account's folder, so you can pick out
-# what to keep. A plain name = a folder with that name next to each
-# library folder (same drive, so it's a quick rename):
-#   /mnt/drive1/tiktok-archive  →  /mnt/drive1/tiktok-blocked
-# Or an absolute path to keep every blocked account in one place.
-blocked_folder = "tiktok-blocked"
 
 # --- Naming ---
 # Folder inside the library for each account. Tokens:

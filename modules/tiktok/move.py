@@ -1,14 +1,17 @@
 """move: put account folders where the settings say they belong.
 
-Use it after changing [tiktok.drives] or library (moving categories to
-another drive), after changing an account's primary category, or after
+Use it after changing [tiktok.drives] (moving categories to another
+drive), after changing an account's primary category, or after
 changing folder_template. Blocked accounts go to the blocked folder.
 
+Also how files get in during migration: drop them in any drive's
+mogul_incoming/tiktok/<account id>/ and run move; it checks every drive.
+
 For each account it looks for the account's folder (plain or zero-padded
-ID, either works) in every library
-folder (the default plus every drive, plus any --from folders you give,
-e.g. a drive you've already taken out of the settings) and moves the
-files into the folder the settings point at now.
+ID, either works) in every drive's library, blocked and incoming folders,
+plus any --from folders you give (e.g. a drive you've already taken out
+of the settings), and moves the files into the folder the settings point
+at now.
 
   Same drive:  a quick rename.
   Other drive: copy to a .part file, check size + xxh64 match, rename it
@@ -114,7 +117,11 @@ def run(args, config):
     if not accs:
         print("No accounts match.")
         return
-    roots = list(s.library_roots) + [r for r in s.blocked_roots if r not in s.library_roots]
+    # every drive's library, blocked and incoming folders, plus any --from
+    roots = []
+    for r in s.library_roots + s.blocked_roots + s.incoming_roots:
+        if r not in roots:
+            roots.append(r)
     for extra in args.source or []:
         extra = os.path.abspath(os.path.expanduser(extra))
         if not os.path.isdir(extra):

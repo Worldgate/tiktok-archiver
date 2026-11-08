@@ -93,7 +93,7 @@ def repair(s, yt, vid, path, timeout):
 
 
 def quarantine(s, acc, v, path, dry_run):
-    dest_dir = naming.account_folder(s, acc, s.quarantine_dir)
+    dest_dir = naming.account_folder(s, acc, s.quarantine_for(acc.category))
     dest = os.path.join(dest_dir, os.path.basename(path))
     if dry_run:
         print(f"    would move to {dest_dir}")
@@ -223,7 +223,7 @@ def run(args, config):
     print(f"OK           : {len(report['ok'])}")
     print(f"Repaired     : {len(report['repaired'])}")
     print(f"Audio only   : {len(report['audio_only'])}")
-    print(f"Quarantined  : {len(report['quarantined'])}  ({s.quarantine_dir})")
+    print(f"Quarantined  : {len(report['quarantined'])}  (in each drive's quarantine folder)")
     if report["no_audio"]:
         print(f"No audio     : {len(report['no_audio'])}  (not repaired: --no-repair)")
     if report["missing"]:
@@ -256,7 +256,7 @@ def list_problems(s, cat, args):
             found += len(rows)
     print(f"\n{found} quarantined, {repaired} repaired so far.")
     if found:
-        print(f"Quarantine folder: {s.quarantine_dir}\n"
+        print("Quarantine folders: " + ", ".join(s.quarantine_roots) + "\n"
               "Really silent? Mark them: mogul.py tiktok silent VIDEO_ID ... "
               "(or --folder PATH)")
 

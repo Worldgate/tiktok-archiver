@@ -3,8 +3,13 @@
 import os
 
 DEFAULTS = {
-    "library": "mogul_library/tiktok",
-    "quarantine": "mogul_quarantine/tiktok",
+    # A drive base holds the usual MOGUL folders. "" = the folder mogul.toml
+    # is in. Categories listed in [tiktok.drives] use that base instead.
+    "base": "",
+    "library_folder": "mogul_library/tiktok",
+    "incoming_folder": "mogul_incoming/tiktok",
+    "blocked_folder": "mogul_blocked/tiktok",
+    "quarantine_folder": "mogul_quarantine/tiktok",
     # Empty = inside mogul_userdata/tiktok/, the private folder for
     # anything tied to this user (never goes to GitHub).
     "state": "",
@@ -25,7 +30,6 @@ DEFAULTS = {
     "dormant_peek": 5,
     "dormant_threshold": 3,
     "rename_audio_only": True,
-    "blocked_folder": "tiktok-blocked",
 }
 
 
@@ -67,53 +71,78 @@ class Settings:
     def reports_dir(self):
         return self._private("reports", "reports")
 
+    # --- drive bases ---
+    # Each category lives under a base folder (its [tiktok.drives] entry, or
+    # the default base), with the usual MOGUL folders inside:
+    #   <base>/mogul_library/tiktok/<id>/      the archive
+    #   <base>/mogul_incoming/tiktok/<id>/     files waiting to be moved in
+    #   <base>/mogul_blocked/tiktok/<id>/      blocked accounts, for hand-sorting
+    #   <base>/mogul_quarantine/tiktok/<id>/   files validate couldn't fix
+
     @property
-    def library_dir(self):
-        """The default library (for categories not listed in [tiktok.drives])."""
-        return self.config.resolve(self.data["library"])
+    def default_base(self):
+        return self.config.resolve(self.data.get("base") or ".")
 
     @property
     def drives(self):
-        """{category: folder} from [tiktok.drives], paths resolved."""
+        """{category: base folder} from [tiktok.drives], paths resolved."""
         raw = self.data.get("drives") or {}
-        return {str(k).lower().strip(): self.config.resolve(v) for k, v in raw.items() if v}
+        return {str(k).lower().strip(): self.config.resolve(v)
+                for k, v in raw.items() if isinstance(v, str) and v}
+
+    def base_for(self, category):
+        return self.drives.get((category or "").lower().strip()) or self.default_base
+
+    def _under(self, category, key):
+        sub = self.data.get(key) or DEFAULTS[key]
+        if os.path.isabs(os.path.expanduser(sub)):
+            return self.config.resolve(sub)  # one folder for every drive
+        return os.path.normpath(os.path.join(self.base_for(category), sub))
 
     def library_for(self, category):
-        """Library folder for an account's primary category."""
-        return self.drives.get((category or "").lower().strip()) or self.library_dir
+        return self._under(category, "library_folder")
+
+    def incoming_for(self, category):
+        return self._under(category, "incoming_folder")
 
     def blocked_for(self, category):
-        """Where blocked accounts' folders go. A plain name (the default,
-        "tiktok-blocked") means a folder of that name next to the account's
-        library, so it's on the same drive and blocking is a quick rename.
-        An absolute path puts every blocked account in one place."""
-        name = self.data.get("blocked_folder") or "tiktok-blocked"
-        if os.path.isabs(os.path.expanduser(name)):
-            return self.config.resolve(name)
-        library = self.library_for(category).rstrip(os.sep)
-        return os.path.join(os.path.dirname(library), name)
+        return self._under(category, "blocked_folder")
 
-    @property
-    def blocked_roots(self):
+    def quarantine_for(self, category):
+        return self._under(category, "quarantine_folder")
+
+    def _roots(self, fn):
         out = []
         for cat in [None] + list(self.drives):
-            path = self.blocked_for(cat)
+            path = fn(cat)
             if path not in out:
                 out.append(path)
         return out
 
     @property
-    def library_roots(self):
-        """Every library folder in use: the default plus each drive, no repeats."""
-        out = []
-        for path in [self.library_dir] + list(self.drives.values()):
-            if path not in out:
-                out.append(path)
-        return out
+    def library_dir(self):
+        """The default library (categories not in [tiktok.drives])."""
+        return self.library_for(None)
 
     @property
     def quarantine_dir(self):
-        return self.config.resolve(self.data["quarantine"])
+        return self.quarantine_for(None)
+
+    @property
+    def library_roots(self):
+        return self._roots(self.library_for)
+
+    @property
+    def blocked_roots(self):
+        return self._roots(self.blocked_for)
+
+    @property
+    def incoming_roots(self):
+        return self._roots(self.incoming_for)
+
+    @property
+    def quarantine_roots(self):
+        return self._roots(self.quarantine_for)
 
     @property
     def state_dir(self):

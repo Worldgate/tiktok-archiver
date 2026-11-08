@@ -64,66 +64,79 @@ somewhere else? Add `--dumps /path/to/folder` (as many as you like).
 Videos that were deleted long ago stay in the catalog with the dates they
 were seen. Running it again only adds what's missing.
 
-Doing it in chunks, one category at a time:
+Then get the videos in. Put each account's files in
+`mogul_incoming/tiktok/<account id>/` on whichever drive they're on now
+(see "Drives" below), and per category:
 
 ```bash
 mogul.py tiktok import-old --from /path/to/tiktok_metadata --category aigen
-mogul.py tiktok move --category aigen --from /path/to/old/tiktok_cache
+mogul.py tiktok move --category aigen
 mogul.py tiktok scan --category aigen
 ```
 
-`move --from` pulls that category's account folders out of the old big
-folder onto the drive set for the category (see below).
+`move` checks every drive's `mogul_incoming/tiktok/` for each account and
+moves the files into that account's library folder on the drive set for
+its category. Same drive: an instant rename. Another drive: copied,
+checked, then the original removed. Folders named with the plain ID or the
+zero-padded one both work. Try `--dry-run` first. Files somewhere else
+entirely? Add `--from /that/folder`.
 
-Have more than one old setup? Run it once for each `--from` folder; the
-second run adds to the first.
-
-Then point `library` (or `[tiktok.drives]`, below) at your old video
-folders in `mogul.local.toml` and run `mogul.py tiktok scan`.
+Have more than one old setup? Run `import-old` once for each; the second
+run adds to the first.
 
 ## Starting with videos you already have (no old database)
 
-1. Point `library` at your existing folders in `mogul.local.toml`
-   (the old `tiktok_cache` layout, one zero-padded ID folder per account,
-   is the default here).
+1. Put them in `mogul_incoming/tiktok/<account id>/` on their drive.
 2. Add your accounts (a text file with one per line works):
    `mogul.py tiktok add --file accounts.txt --category comedy`
-3. `mogul.py tiktok scan` catalogs what's already on disk.
+3. `mogul.py tiktok move`, then `mogul.py tiktok scan`.
 4. Then the usual `update` → `download` → `validate`.
 
-## Different drives per category
+## Drives
 
-In `mogul.local.toml`:
+Each category lives under a **base folder** that holds the usual MOGUL
+folders:
 
-```toml
-[tiktok.drives]
-aigen = "/mnt/drive1/tiktok-archive"
-commentary = "/mnt/drive2/tiktok-archive"
+```
+/mnt/STORAGE2/tiktok-archiver/
+  mogul_incoming/tiktok/<id>/     drop files here to be moved in
+  mogul_library/tiktok/<id>/      the archive
+  mogul_blocked/tiktok/<id>/      blocked accounts, to hand-sort
+  mogul_quarantine/tiktok/<id>/   files validate couldn't fix
 ```
 
-Check it took with `./mogul.py tiktok settings`. Each account goes on the
-drive for its primary category; anything not
-listed uses `library`. To move a category to another drive later, change
-its line and run `mogul.py tiktok move` (try `--dry-run` first). If the
-old drive is no longer listed anywhere in the settings, tell move where to
-look: `move --from /mnt/drive2/tiktok-archive`. Moves between drives copy,
-check the copy matches, then remove the original. Nothing is overwritten.
+Set them in `mogul.local.toml`:
+
+```toml
+[tiktok]
+base = "/mnt/STORAGE1/tiktok-archiver"      # every category not listed below
+
+[tiktok.drives]
+aigen = "/mnt/STORAGE2/tiktok-archiver"
+horror = "/mnt/STORAGE2/tiktok-archiver"
+```
+
+Keep other `[tiktok]` settings above the `[tiktok.drives]` line: everything
+after a header belongs to it. Check it with `mogul.py tiktok settings`.
+To move a category to another drive later, change its line and run
+`mogul.py tiktok move`. If the old drive is no longer in the settings,
+tell move where to look: `move --from /mnt/OLD/tiktok-archiver/mogul_library/tiktok`.
+Nothing is ever overwritten.
 
 ## Blocking accounts
 
 When an account turns into product ads (or anything you don't want):
 
 ```bash
-./mogul.py tiktok block @someone --reason "selling sweaters now"
+mogul.py tiktok block @someone --reason "selling sweaters now"
 ```
 
-It goes on the block list, stops being archived, and its whole folder
-moves to `tiktok-blocked` next to its library folder (same drive, so it's
-instant). Delete whatever you don't want to keep from there; the next
-`scan` marks those videos as discarded, so they're never downloaded
-again. `unblock` moves what's left back and starts archiving it again.
-Accounts the old scripts had blocked land in the blocked folder when you
-migrate with `move`.
+It goes on the block list, stops being archived, and its folder moves to
+`mogul_blocked/tiktok/` on the same drive (instant). Delete whatever you
+don't want to keep from there; the next `scan` marks those videos as
+discarded, so they're never downloaded again. `unblock` moves what's
+left back and starts archiving it again. Accounts the old scripts had
+blocked land in `mogul_blocked` when you migrate with `move`.
 
 ## Actions
 
@@ -145,7 +158,7 @@ migrate with `move`.
 | `validate` | Check files, repair audio, quarantine broken ones (`--list`, `--recheck`, `--no-repair`) |
 | `silent ID ...` | Mark videos as really silent (`--folder` takes IDs from filenames) |
 | `settings` | Show which settings files were read and where each category's files go (`--name`) |
-| `move` | Move account folders to where the settings say (`--from`, `--dry-run`) |
+| `move` | Move files in from every drive's incoming folder, or to a new drive after a settings change (`--from`, `--dry-run`) |
 | `import-old --from PATH` | Import the old scripts' accounts, listings and skips (`--category`, `--dumps`, `--dry-run`) |
 
 ## Where things go
@@ -157,8 +170,10 @@ mogul_userdata/tiktok/           private, tied to you
   blocked.json                   block list
   reports/                       one report per run
   state/                         latest raw listings (gzipped yt-dlp JSON), update queue
-mogul_library/tiktok/<id>/       videos, named 2025.02.03-7467300438342290734.mp4
-mogul_quarantine/tiktok/<id>/    files validate couldn't fix
+<base>/mogul_library/tiktok/<id>/       videos, named 2025.02.03-7467300438342290734.mp4
+<base>/mogul_incoming/tiktok/<id>/      files waiting for move
+<base>/mogul_blocked/tiktok/<id>/       blocked accounts
+<base>/mogul_quarantine/tiktok/<id>/    files validate couldn't fix
 ```
 
 None of these go to GitHub. `mogul_userdata/` is for anything specific to

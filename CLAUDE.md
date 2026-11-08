@@ -41,7 +41,8 @@ truth; the DB is a disposable failsafe/speed-up, same rule as MOGUL).
 - **Settings live in `[tiktok]` in `mogul.toml`.** Same file name and
   layering as MOGUL (`mogul.local.toml` overrides, gitignored).
 - **Folders use MOGUL's names** with a `tiktok` subfolder:
-  `mogul_json/tiktok/`, `mogul_library/tiktok/`, `mogul_quarantine/tiktok/`.
+  `mogul_json/tiktok/`, and under each drive base `mogul_library/tiktok/`,
+  `mogul_incoming/tiktok/`, `mogul_blocked/tiktok/`, `mogul_quarantine/tiktok/`.
 - **`mogul_userdata/` holds anything private or user-specific** (decided
   2026-11-07; meant to become a MOGUL-wide convention): `[core] userdata`,
   one subfolder per module. TikTok: `mogul_userdata/tiktok/` holds
@@ -68,8 +69,8 @@ into MOGUL's core for future video modules.
   (impersonation is required; plain yt-dlp gets blocked by TikTok).
 - Old scripts (pre-rewrite) used `tiktok_cache/` (videos),
   `tiktok_metadata/` (SQLite DBs, flatdumps, cookies), `tiktok_validate/`.
-  The default folder and file naming here matches the old video layout,
-  so pointing `library` at the old `tiktok_cache` and running `scan` works.
+  The default folder and file naming matches the old video layout, so
+  old ID folders dropped into `mogul_incoming/tiktok/` work with `move`.
 
 ## Code layout
 
@@ -103,16 +104,23 @@ modules/tiktok/
   `mogul_json/tiktok/<uploader_id>.json`. Saved after every
   account (update) or every video (download, scan, validate), written
   safely (temp file + rename) by `mogul_core/store.py`.
-- **No paths in the JSON.** A file's location = the account's library
-  (`[tiktok.drives]` entry for its primary category, else `library`), or
-  `quarantine` if `file.location` says so, + `folder_template` +
-  `file.filename`. So changing drives/templates needs no catalog edits,
+- **No paths in the JSON.** A file's location = the account's base
+  (`[tiktok.drives]` entry for its primary category, else `base`) +
+  `library_folder` (or `blocked_folder` if the account is blocked, or
+  `quarantine_folder` if `file.location` is quarantine) + `folder_template`
+  + `file.filename`. So changing drives/templates needs no catalog edits,
   just `move`.
-- **Drives per category** (decided 2026-11-07): `[tiktok.drives]` in
-  `mogul.local.toml`, `category = "/path"`, keyed by primary category.
-  Mavrick has two old drives (e.g. aigen on drive1, commentary on drive2)
-  and plans to move to a third drive later. Quarantine is still one
-  folder for all drives (could go per-drive later).
+- **Drive bases** (decided 2026-11-07, Mavrick's model): each
+  `[tiktok.drives]` entry (and `base`, default "" = repo folder) is a base
+  folder holding the MOGUL folders: `mogul_library/tiktok`,
+  `mogul_incoming/tiktok`, `mogul_blocked/tiktok`,
+  `mogul_quarantine/tiktok` (settings `library_folder`, `incoming_folder`,
+  `blocked_folder`, `quarantine_folder`; relative = inside each base,
+  absolute = one shared folder). Several categories can share a base. His
+  setup: `aigen` and `horror` → `/mnt/STORAGE2/tiktok-archiver`. Replaced
+  the earlier `library` / `quarantine` / sibling `tiktok-blocked`
+  settings (`settings` warns if old keys are still set). Quarantine is
+  per drive now.
 - IDs (account and video) are **strings**: 19 digits is too big for
   JavaScript numbers.
 - Videos are never removed from the catalog. Missing from a listing →
@@ -224,9 +232,9 @@ modules/tiktok/
   in chunks; the block list only comes over on an unfiltered run. Safe to
   rerun (tested: second run changes nothing). Dumps for accounts not in
   the DB are reported, not created. Then run scan for the files.
-- **move**: for each account, looks for its folder under every library
-  root (default + drives + `--from` paths, e.g. a drive removed from the
-  settings) with the current folder_template (plus `--old-template`), and
+- **move**: for each account, looks for its folder under every drive's
+  library, blocked and incoming folders (+ `--from` paths, e.g. a drive
+  removed from the settings) with the current folder_template (plus `--old-template`), and
   moves every file into the folder the settings point at now. Same
   filesystem → rename; otherwise copy to `.part`, check size + xxh64,
   rename, delete original. Never overwrites: DUPLICATE (same bytes) /
@@ -237,9 +245,8 @@ modules/tiktok/
   with the plain ID or the zero-padded one, whichever the template uses.
 - **block** (decided 2026-11-07, Mavrick's whittling workflow): block
   list + `account.blocked = {date, reason}` + status removed + moves the
-  account folder to the blocked folder. `blocked_folder` (default
-  `tiktok-blocked`) = sibling of the account's library folder (same drive,
-  rename), or an absolute path. Blocked accounts' home folder IS the
+  account folder to `<base>/mogul_blocked/tiktok/` (same drive, rename).
+  Blocked accounts' home folder IS the
   blocked folder (naming.account_folder), so scan/move/file_path just
   work. Files he deletes there → scan marks DISCARDED (file record
   dropped, `status.skip` reason `discarded — you deleted it`, permanent;
@@ -258,17 +265,18 @@ modules/tiktok/
 
 ## Mavrick's import plan (2026-11-07)
 
-One category at a time: `import-old --category X` → `move --category X
---from /old/big/tiktok_cache` (copies that category's ID folders to its
-drive) → `scan --category X` → later update/download/validate. He likes
+One category at a time: `import-old --category X` → `move --category X`
+(pulls that category's ID folders from every drive's incoming folder to
+its drive) → `scan --category X` → later update/download/validate. He likes
 seeing which videos people delete (drama vs. dropped ads), which is why
 all old dumps go in. Idea, not built: a view listing deleted videos
 (`not_listed_since`) per account or across all.
 
-Migration layout (2026-11-07): each drive gets `mogul_incoming/<account id>/`
-with that account's files (8 TB wasn't enough, so accounts are split
-across drives). Step 3 is `move --category X --from <drive1>/mogul_incoming
---from <drive2>/mogul_incoming ...`. One-time migration, not routine.
+Migration layout (2026-11-07): each drive gets
+`<base>/mogul_incoming/tiktok/<account id>/` with that account's files
+(8 TB wasn't enough, so accounts are split across drives). Step 3 is just
+`move --category X`: it checks every drive's incoming folder. One-time
+migration, not routine.
 He "whittles": when an account turns into product ads he blocks it and
 keeps only the relevant videos (so removed accounts keep partial files).
 

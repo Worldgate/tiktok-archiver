@@ -24,27 +24,33 @@ def run(args, config):
     print(f"  userdata          : {where(s.userdata_dir)}")
     print(f"  cookies           : {s.cookies_path}"
           + ("   (found, will be used)" if os.path.isfile(s.cookies_path) else "   (none)"))
-    print(f"  quarantine        : {where(s.quarantine_dir)}")
-    print(f"  library (default) : {where(s.library_dir)}")
 
-    print("\n[tiktok.drives]")
+    print("\n[tiktok.drives]  (base folder per category)")
     if s.drives:
         for name, path in sorted(s.drives.items()):
             print(f"  {name:<17} : {where(path)}")
     else:
-        print("  (none set: every category uses the default library)")
-        from .settings import DEFAULTS
-        stray = [k for k, v in raw.items() if isinstance(v, str) and k not in DEFAULTS]
-        if stray:
-            print(f"  Note: [tiktok] has settings it doesn't know: {', '.join(stray)}. "
-                  "Did they belong under [tiktok.drives]?")
+        print("  (none set: every category uses the default base)")
+    print(f"  {'(everything else)':<17} : {where(s.default_base)}")
+    from .settings import DEFAULTS
+    old = [k for k in ("library", "quarantine") if k in raw]
+    if old:
+        print(f"  Note: {', '.join(old)} isn't used anymore: set the base folder per "
+              "category under [tiktok.drives] (or 'base' for the default).")
+    stray = [k for k, v in raw.items() if isinstance(v, str) and k not in DEFAULTS
+             and k not in ("library", "quarantine")]
+    if stray:
+        print(f"  Note: [tiktok] has settings it doesn't know: {', '.join(stray)}. "
+              "Did they belong under [tiktok.drives]?")
     if isinstance(raw.get("drives"), dict):
         odd = [k for k, v in raw["drives"].items() if not isinstance(v, str)]
         if odd:
             print(f"  Note: these under [tiktok.drives] aren't paths: {', '.join(odd)}")
 
+    print("\nInside each base")
+    for key in ("library_folder", "incoming_folder", "blocked_folder", "quarantine_folder"):
+        print(f"  {key:<17} : {s.data.get(key)}")
     print(f"\nfolder_template     : {s.folder_template}")
-    print(f"blocked_folder      : {s.data.get('blocked_folder')}")
 
     cats = {}
     for acc in cat.all():
@@ -57,7 +63,7 @@ def run(args, config):
             n = cats.get(c, 0)
             print(f"  {c:<17} : {s.library_for(c)}"
                   + (f"   ({n} account(s))" if n else "")
-                  + ("" if c in s.drives else "   [default library]"))
+                  + ("" if c in s.drives else "   [default base]"))
     if args.name:
         acc = cat.find(args.name)
         if acc:

@@ -54,7 +54,7 @@ def video_filename(settings, vid, video, ext):
 def file_path(settings, account, video):
     """Where a recorded file should be right now (library or quarantine)."""
     f = video["file"]
-    base = settings.quarantine_dir if f.get("location") == "quarantine" else None
+    base = settings.quarantine_for(account.category) if f.get("location") == "quarantine" else None
     return os.path.join(account_folder(settings, account, base), f["filename"])
 
 
