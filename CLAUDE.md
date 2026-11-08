@@ -199,7 +199,12 @@ tools/
   `permanent` for deleted/private/photo posts); account-level errors
   (rate limit, login, timeout) count toward flagging and stop the account
   once flagged. Audio-only downloads (photo slideshows) become `.m4a`.
-  Files with no audio are left unchecked for validate.
+  Files with no audio are left unchecked for validate. Before fetching,
+  checks the account folder: a file already there for that video ID
+  (moved in, not scanned yet) is cataloged instead ("ALREADY HERE"), and
+  a fresh download never gets a "-2" name: if the proper name exists, the
+  existing file is kept and the new copy dropped. (Fixed 2026-11-07 after
+  Mavrick's first real download made "-2" duplicates of moved-in files.)
 - **skipped**: groups skips by reason; `--retry` clears non-permanent ones
   (`--all-reasons` for all, `--reason` to filter).
 - **scan**: read-only. Matches files to accounts by numeric folder name
