@@ -84,6 +84,17 @@ entirely? Add `--from /that/folder`.
 Have more than one old setup? Run `import-old` once for each; the second
 run adds to the first.
 
+### Just the account list
+
+Have the old scripts' account list saved as text? `tools/list_to_ids.py`
+turns it into one file of account IDs per category (IDs, because handles
+change), ready for `add`:
+
+```bash
+python tools/list_to_ids.py old_list.txt --out ids
+python mogul.py tiktok add --file ids/aigen.txt --category aigen --yes
+```
+
 ## Starting with videos you already have (no old database)
 
 1. Put them in `mogul_incoming/tiktok/<account id>/` on their drive.

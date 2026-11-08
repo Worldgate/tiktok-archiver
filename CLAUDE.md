@@ -96,6 +96,10 @@ modules/tiktok/
   download.py          download + skipped
   scan.py              catalog files already on disk
   validate.py          validate + silent
+tools/
+  list_to_ids.py       standalone helper (not a mogul.py action): old
+                       "accounts.py list" output → <category>.txt ID files
+                       for `add --file`, blocked.txt, accounts.csv
 ```
 
 ## Data storage
