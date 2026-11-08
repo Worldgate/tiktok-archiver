@@ -89,8 +89,11 @@ def run(args, config):
             accs = [a for a in accs if not a.state.get("last_updated")]
         if args.last is not None:
             def stale(a):
-                d = days_ago(a.state.get("last_updated"))
-                return d is None or d >= args.last
+                # any successful contact counts: a full listing, or a quick
+                # "nothing new" check
+                ages = [days_ago(a.state.get(k)) for k in ("last_updated", "last_checked")]
+                ages = [x for x in ages if x is not None]
+                return not ages or min(ages) >= args.last
             accs = [a for a in accs if stale(a)]
     if not accs:
         print("No accounts to update.")
@@ -234,7 +237,8 @@ def add_arguments(p):
     add_filters(p)
     p.add_argument("--new", action="store_true", help="only accounts never updated")
     p.add_argument("--last", type=float, metavar="DAYS",
-                   help="only accounts not updated in this many days")
+                   help="only accounts not checked in this many days (1 = last 24 hours, "
+                        "0.5 = 12 hours)")
     p.add_argument("--resume", action="store_true",
                    help="carry on with the accounts an interrupted run didn't get to")
     p.add_argument("--full", action="store_true",

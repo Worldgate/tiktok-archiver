@@ -192,7 +192,9 @@ tools/
   handle) and merged, because TikTok returns different slices of big
   accounts per URL. Timeout per account: override, else 3x last duration,
   else default. Writes `mogul_userdata/tiktok/state/update-queue.txt`; `--resume`
-  continues an interrupted run.
+  continues an interrupted run. `--last DAYS` skips accounts with any
+  successful contact (full listing or dormant check) newer than that;
+  `--new` only never-updated accounts.
 - **download**: listed videos with no file and no skip, newest first.
   yt-dlp writes `<id>.<ext>` into the account folder, then it's renamed to
   `filename_template`. Video-level errors → `status.skip` (with
@@ -317,6 +319,9 @@ TikTok yet.
   "nothing new" checks skip the full listing, so deletions on quiet
   accounts are never noticed. A `full_every` days setting would force a
   full listing periodically.
+- **Prettier terminal output** (asked 2026-11-08, low priority): organized,
+  aligned columns and a splash of color for list/update/download etc.
+  Keep plain output when not a terminal (piped to a file).
 - **lostmedia**: identify unknown video files via TikTok's oEmbed API
   (batched, cached), then hand matched files to import.
 - **import**: move `<uid>_<handle>/` folders from an incoming folder into
