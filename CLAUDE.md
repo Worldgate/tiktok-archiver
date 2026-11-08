@@ -306,6 +306,17 @@ TikTok yet.
 ## Not built yet (from the old scripts)
 
 - **SQLite index** rebuilt from the JSON (failsafe / faster queries).
+- **Repost detection** (idea, 2026-11-08): scan only does ffprobe + exact
+  whole-file hashes (xxh64 + `[core] hashes`), no fingerprinting. Mavrick's
+  thought: audio fingerprints (MOGUL core has an audio fingerprint helper
+  for radio) would catch reposts, since reposters edit the picture but
+  rarely the audio. Watch out for trending sounds shared by unrelated
+  videos (false matches: combine with duration / original-sound only) and
+  pitch-shifted or sped-up reposts.
+- **Weekly full listing** (offered 2026-11-07, not decided): dormant
+  "nothing new" checks skip the full listing, so deletions on quiet
+  accounts are never noticed. A `full_every` days setting would force a
+  full listing periodically.
 - **lostmedia**: identify unknown video files via TikTok's oEmbed API
   (batched, cached), then hand matched files to import.
 - **import**: move `<uid>_<handle>/` folders from an incoming folder into
