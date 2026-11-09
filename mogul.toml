@@ -91,6 +91,14 @@ impersonate = "Chrome-131:Android-14"
 # long each account takes and allows 3x that.
 timeout = 120
 
+# First listing of an account with no history: allow this many seconds per
+# video it has (when that's more than timeout), so big accounts don't time
+# out. After that, update uses 3x how long the last listing took. A timeout
+# doubles the account's timeout for next time, up to timeout_max seconds,
+# and timed-out accounts get one retry at the end of the run.
+timeout_per_video = 0.15
+timeout_max = 1800
+
 # Seconds to wait between accounts (a random time in this range).
 rate_min = 2
 rate_max = 6

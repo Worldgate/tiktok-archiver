@@ -162,7 +162,7 @@ blocked land in `mogul_blocked` when you migrate with `move`.
 | `block @a --reason ...` / `unblock` | Block an account: stop archiving, move its folder to the blocked folder (`--keep-files`) |
 | `flagged` / `unflag` | Accounts paused after repeated errors |
 | `timeout --name @a --add 60` | Longer timeout for slow accounts (`--set`, `--clear`, `--list`) |
-| `update` | Fetch video lists (`--new`, `--last 7`, `--resume`, `--full`) |
+| `update` | Fetch video lists (`--new`, `--last 1`, `--errors`, `--resume`, `--full`) |
 | `download` | Download new videos (`--limit 50`) |
 | `skipped` | Videos download skipped, by reason (`--retry`, `--reason`, `--all-reasons`) |
 | `scan` | Catalog files already in the library (`--forget-missing`) |

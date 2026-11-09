@@ -20,6 +20,8 @@ DEFAULTS = {
     "extensions": ["mp4", "webm", "mkv", "mov", "m4a", "mp3", "aac"],
     "impersonate": "Chrome-131:Android-14",
     "timeout": 120,
+    "timeout_per_video": 0.15,
+    "timeout_max": 1800,
     "rate_min": 2,
     "rate_max": 6,
     "video_delay_min": 0.5,

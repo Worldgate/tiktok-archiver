@@ -190,8 +190,14 @@ tools/
   `stale_count` +1. Otherwise full listing. Accounts with
   `large_channel`+ videos are listed twice (by channel URL/ID and by
   handle) and merged, because TikTok returns different slices of big
-  accounts per URL. Timeout per account: override, else 3x last duration,
-  else default. Writes `mogul_userdata/tiktok/state/update-queue.txt`; `--resume`
+  accounts per URL. Timeout per account (`effective_timeout`): manual
+  override, else `timeout_learned` (set to 2x on a timeout, capped at
+  `timeout_max`, cleared on success), else 3x last duration, else for a
+  first listing `listed_count * timeout_per_video`, else default. Accounts
+  that time out get one retry at the end of the run (`--no-retry` to
+  skip); `--errors` reruns only accounts whose last attempt failed. (Old
+  scripts only learned from successes, so big accounts timed out forever;
+  fixed 2026-11-08 after @teddywang86, ~2,500 videos, timed out at 120s.) Writes `mogul_userdata/tiktok/state/update-queue.txt`; `--resume`
   continues an interrupted run. `--last DAYS` skips accounts with any
   successful contact (full listing or dormant check) newer than that;
   `--new` only never-updated accounts.

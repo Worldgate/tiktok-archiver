@@ -63,13 +63,30 @@ def save_dump(s, uid, dump):
 
 
 def effective_timeout(s, acc, default):
+    """Seconds to allow one listing of this account, and a note saying why.
+
+    In order: a manual override (timeout action), what a timeout taught us
+    last time, 3x how long the last good listing took, a guess from how many
+    videos the account has (first listing of a big account), the default.
+    """
     override = acc.state.get("timeout_override")
     if override:
         return override, f"{override}s override"
+    learned = acc.state.get("timeout_learned")
     last = acc.state.get("last_duration")
+    if learned and (not last or learned > last * 3):
+        return learned, f"{learned}s, timed out last time"
     if last and last * 3 > default:
         return int(last * 3), f"{int(last * 3)}s, last took {last:.0f}s"
+    count = acc.state.get("listed_count") or 0
+    guess = min(int(count * s.timeout_per_video), s.timeout_max)
+    if not last and guess > default:
+        return guess, f"{guess}s for ~{count:,} videos"
     return default, None
+
+
+def is_timeout(reason):
+    return (reason or "").startswith("timed out") or reason == "connection timeout"
 
 
 def run(args, config):
@@ -87,6 +104,8 @@ def run(args, config):
         accs = cat.select(name=args.name, category=args.category)
         if args.new:
             accs = [a for a in accs if not a.state.get("last_updated")]
+        if args.errors:
+            accs = [a for a in accs if a.state.get("error_count")]
         if args.last is not None:
             def stale(a):
                 # any successful contact counts: a full listing, or a quick
@@ -104,24 +123,23 @@ def run(args, config):
         write_queue(s, [a.uid for a in accs])
 
     report = {"ok": [], "dormant": [], "empty": [], "errors": [], "skipped_flagged": [],
-              "handle_changes": []}
-    total_new = 0
+              "handle_changes": [], "retried": []}
+    totals = {"new": 0}
     start = time.monotonic()
-    width = len(str(len(accs)))
-    print(f"\nUpdating {len(accs)} account(s)...\n")
 
-    for i, acc in enumerate(accs, 1):
-        print(f"{elapsed(start)} [{i:>{width}}/{len(accs)}] @{acc.handle} ({acc.category})",
-              end="", flush=True)
+    def process(acc, tag):
+        """Update one account. Returns 'ok', 'dormant', 'empty', 'flagged',
+        'dry', 'timeout' or 'error'."""
+        print(f"{elapsed(start)} {tag} @{acc.handle} ({acc.category})", end="", flush=True)
 
         if acc.flagged and not args.force:
             print(" — SKIPPED (flagged; see mogul.py tiktok flagged)")
             report["skipped_flagged"].append(acc.uid)
             done_in_queue(s, acc.uid)
-            continue
+            return "flagged"
         if args.dry_run:
             print(" — DRY RUN")
-            continue
+            return "dry"
 
         when = store.now()
         known = {vid for vid, v in acc.videos.items() if v.get("listing")}
@@ -135,15 +153,14 @@ def run(args, config):
                 acc.state["stale_count"] = acc.state.get("stale_count", 0) + 1
                 acc.state["last_checked"] = when
                 old = acc.set_handle(peek["handle"], when)
+                acc.clear_errors()
                 acc.save()
                 print(f" — nothing new (newest {len(ids)} known, streak "
                       f"{acc.state['stale_count']})"
                       + (f" (handle: @{old} → @{acc.handle})" if old else ""))
                 report["dormant"].append(acc.uid)
                 done_in_queue(s, acc.uid)
-                if i < len(accs):
-                    pause(s.rate_min, s.rate_max)
-                continue
+                return "dormant"
 
         timeout, note = effective_timeout(s, acc, default_timeout)
         if note:
@@ -167,17 +184,24 @@ def run(args, config):
             print(" — EMPTY (no videos posted)")
             report["empty"].append(acc.uid)
             done_in_queue(s, acc.uid)
-            continue
+            return "empty"
         if not good:
             reason = next((r["error"] for r in results if r["error"]), "listing failed")
+            timed_out = any(is_timeout(r["error"]) for r in results)
             print(f" — ERROR: {reason}")
+            if timed_out:
+                # learn: give it twice as long next time (up to timeout_max)
+                bigger = min(int(timeout * 2), s.timeout_max)
+                if bigger > timeout:
+                    acc.state["timeout_learned"] = bigger
+                    print(f"  next try gets {bigger}s")
             if acc.record_error(reason, s.error_threshold, when):
                 print(f"  ⚑ FLAGGED after {s.error_threshold} errors in a row")
             acc.save()
             report["errors"].append({"uploader_id": acc.uid, "handle": acc.handle,
                                      "error": reason})
             done_in_queue(s, acc.uid)
-            continue
+            return "timeout" if timed_out else "error"
 
         entries, dropped = {}, 0
         for r in good:
@@ -188,7 +212,7 @@ def run(args, config):
         entries = list(entries.values())
         complete = len(good) == len(results)
         new = listing.merge(acc, entries, when, complete)
-        total_new += new
+        totals["new"] += new
 
         merged = dict(good[0]["dump"])
         merged["entries"] = entries
@@ -205,6 +229,7 @@ def run(args, config):
             acc.info["status"] = "active"
         acc.state.update(last_updated=when, last_checked=when, last_duration=round(seconds, 1),
                          listed_count=len(entries), stale_count=0)
+        acc.state.pop("timeout_learned", None)  # real timing known now
         acc.clear_errors()
         acc.save()
 
@@ -218,15 +243,43 @@ def run(args, config):
         print(msg)
         report["ok"].append({"uploader_id": acc.uid, "listed": len(entries), "new": new})
         done_in_queue(s, acc.uid)
-        if i < len(accs):
+        return "ok"
+
+    width = len(str(len(accs)))
+    print(f"\nUpdating {len(accs)} account(s)...\n")
+    timed_out = []
+    for i, acc in enumerate(accs, 1):
+        result = process(acc, f"[{i:>{width}}/{len(accs)}]")
+        if result == "timeout" and not acc.flagged:
+            timed_out.append(acc)
+        if i < len(accs) and result not in ("flagged", "dry"):
             pause(s.rate_min, s.rate_max)
+
+    # One more try for anything that timed out, with the longer timeout it
+    # just learned (most big accounts only need more time).
+    if timed_out and not args.no_retry:
+        print(f"\nRetrying {len(timed_out)} account(s) that timed out, with longer timeouts...\n")
+        for j, acc in enumerate(timed_out, 1):
+            pause(s.rate_min, s.rate_max)
+            result = process(acc, f"[retry {j}/{len(timed_out)}]")
+            if result in ("ok", "dormant", "empty"):
+                report["errors"] = [e for e in report["errors"] if e["uploader_id"] != acc.uid]
+                report["retried"].append(acc.uid)
+            elif result in ("timeout", "error"):
+                # keep only the latest error for this account
+                errs = [e for e in report["errors"] if e["uploader_id"] == acc.uid]
+                for e in errs[:-1]:
+                    report["errors"].remove(e)
 
     print(f"\n{'─' * 50}")
     print(f"Time         : {elapsed(start)}")
-    print(f"Updated      : {len(report['ok'])}  ({total_new:,} new videos to download)")
+    print(f"Updated      : {len(report['ok'])}  ({totals['new']:,} new videos to download)")
     print(f"Nothing new  : {len(report['dormant'])}")
     print(f"Empty        : {len(report['empty'])}")
-    print(f"Errors       : {len(report['errors'])}")
+    if report["retried"]:
+        print(f"Fixed on retry: {len(report['retried'])}")
+    print(f"Errors       : {len(report['errors'])}"
+          + ("  (rerun just these: update --errors)" if report["errors"] else ""))
     if report["skipped_flagged"]:
         print(f"Flagged      : {len(report['skipped_flagged'])} skipped")
     if not args.dry_run:
@@ -236,6 +289,10 @@ def run(args, config):
 def add_arguments(p):
     add_filters(p)
     p.add_argument("--new", action="store_true", help="only accounts never updated")
+    p.add_argument("--errors", action="store_true",
+                   help="only accounts whose last attempt failed (timeouts, errors)")
+    p.add_argument("--no-retry", action="store_true",
+                   help="don't retry timed-out accounts at the end of the run")
     p.add_argument("--last", type=float, metavar="DAYS",
                    help="only accounts not checked in this many days (1 = last 24 hours, "
                         "0.5 = 12 hours)")
